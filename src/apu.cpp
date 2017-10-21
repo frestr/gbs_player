@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include <cassert>
 #include "apu.h"
 
 APU::APU(SystemClock& clock)
@@ -35,11 +36,68 @@ APU::APU(SystemClock& clock)
     mixer.add_channel(&square2);
     mixer.add_channel(&wave);
     mixer.add_channel(&noise);
+
+    regptr_table = {
+        &Channel::NRx0_write,
+        &Channel::NRx1_write,
+        &Channel::NRx2_write,
+        &Channel::NRx3_write,
+        &Channel::NRx4_write,
+    };
 }
 
 Mixer& APU::get_mixer()
 {
     return mixer;
+}
+
+void APU::register_write(uint16_t addr, uint8_t value)
+{
+    assert(addr >= 0xFF10 && addr <= 0xFF3F);
+
+    // No writes to registers when powered off
+    if (! power_on && addr < 0xFF26)
+        return;
+
+    // Call the respective register write function of the respective channel
+    uint8_t i = (addr - 0xFF10) % 5;
+    if      (addr < 0xFF15) (dynamic_cast<Channel*>(&square1)->*regptr_table[i])(value);
+    else if (addr < 0xFF1A) (dynamic_cast<Channel*>(&square2)->*regptr_table[i])(value);
+    else if (addr < 0xFF1F) (dynamic_cast<Channel*>(&wave   )->*regptr_table[i])(value);
+    else if (addr < 0xFF24) (dynamic_cast<Channel*>(&noise  )->*regptr_table[i])(value);
+    else if (addr < 0xFF53) {
+        if      (i == 0) NR50_write(value);
+        else if (i == 1) NR51_write(value);
+        else if (i == 2) NR52_write(value);
+    } else if(addr >= 0xFF30 && addr <= 0xFF3F) {
+        // set wave table value
+    }
+}
+
+void register_read(uint16_t addr)
+{
+
+}
+
+void APU::boot_sound()
+{
+    // Setup
+    register_write(0xFF23, 0x80); // Turn APU power on
+    register_write(0xFF11, 0x80); // Set duty cycle
+    register_write(0xFF12, 0xF3); // Set full volume & period for square 1
+    register_write(0xFF25, 0xF3); // Enable both left/right output for square channels
+    register_write(0xFF24, 0x77); // Max master volume
+
+    // Sound 1
+    register_write(0xFF13, 0x83); // Set lower freq for square 1
+    register_write(0xFF14, 0x87); // Set upper freq & trigger
+
+    // Wait a little
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Sound 2
+    register_write(0xFF13, 0xC1);
+    register_write(0xFF14, 0x87);
 }
 
 void APU::NR50_write(uint8_t value)
@@ -77,7 +135,8 @@ void APU::NR52_write(uint8_t value)
     uint8_t power_on = value >> 7;
     if (! power_on) {
         // Set registers NR10-NR51 to 0
-
+        for (uint16_t a = 0xFF10; a < 0xFF26; ++a)
+            register_write(a, 0);
     }
 
     // Stop/start the frame sequencer & channel timers if the power is
@@ -100,25 +159,4 @@ void APU::NR52_write(uint8_t value)
     wave.set_channel_enabled(wave_on);
     square2.set_channel_enabled(square2_on);
     square1.set_channel_enabled(square1_on);
-}
-
-void APU::boot_sound()
-{
-    // Setup
-    NR52_write(0x80);           // Turn APU power on
-    square1.NRx1_write(0x80);   // Set duty cycle
-    square1.NRx2_write(0xf3);   // Set full volume & period
-    NR51_write(0xf3);           // Enable both left/right output for square channels
-    NR50_write(0x77);           // Max master volume
-
-    // Sound 1
-    square1.NRx3_write(0x83);   // Set lower frequency
-    square1.NRx4_write(0x87);   // Set upper frequency & trigger
-
-    // Wait a little
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // Sound 2
-    square1.NRx3_write(0xc1);
-    square1.NRx4_write(0x87);
 }

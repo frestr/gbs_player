@@ -18,6 +18,9 @@ public:
 
     void boot_sound();
 
+    void register_write(uint16_t addr, uint8_t value);
+    void register_read(uint16_t addr);
+
 private:
     Square1 square1;
     Square2 square2;
@@ -28,6 +31,9 @@ private:
     Mixer mixer;
 
     bool power_on;
+
+    typedef void (Channel::*RegPtr) (uint8_t);
+    std::array<RegPtr, 5> regptr_table;
 
     void NR50_write(uint8_t value);
     void NR51_write(uint8_t value);

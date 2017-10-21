@@ -18,6 +18,8 @@ public:
     bool is_sweep_decrease();
     uint8_t get_sweep_shift();
 
+    virtual void NRx0_write(uint8_t value);
+
 private:
     bool sweep_enabled;
     bool sweep_decrease;

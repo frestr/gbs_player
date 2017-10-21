@@ -44,7 +44,7 @@ void Square2::NRx0_write(uint8_t value)
 void Square2::NRx1_write(uint8_t value)
 {
     uint8_t duty = value >> 6;
-    uint8_t length = value & 0x3f;
+    uint8_t length = value & 0x3F;
     set_duty_cycle(duty);
     set_length_counter(length);
 }
@@ -62,7 +62,7 @@ void Square2::NRx3_write(uint8_t value)
 {
     uint8_t frequency_lower = value;
     uint16_t frequency = get_frequency();
-    uint16_t new_freq = (frequency & 0xff00) | frequency_lower;
+    uint16_t new_freq = (frequency & 0xFF00) | frequency_lower;
     set_frequency(new_freq);
 }
 
@@ -74,7 +74,7 @@ void Square2::NRx4_write(uint8_t value)
 
     uint8_t frequency_upper = value & 0x7;
     uint16_t frequency = get_frequency();
-    uint16_t new_freq = (frequency & 0xff) | (frequency_upper << 8);
+    uint16_t new_freq = (frequency & 0xFF) | (frequency_upper << 8);
     set_frequency(new_freq);
 
     if (do_trigger == 1)
