@@ -1,0 +1,49 @@
+#pragma once
+
+#include <SFML/Audio.hpp>
+#include <cstdint>
+#include "channel.h"
+#include "timer_listener.h"
+#include <mutex>
+#include <atomic>
+
+/*
+ * As of now, this class functions as both a DAC and mixer
+ * (there's no point in actually converting digital values to 
+ * voltages here, because SFML expects digital samples)
+ */
+class Mixer : public TimerListener
+{
+public:
+    static const int SAMPLING_RATE = 44100;
+
+    // the buffer must contain at least this amount of samples
+    // before it can be considered ready
+    const unsigned int buffer_threshold = 2048;
+
+    Mixer();
+
+    void add_channel(Channel* channel);
+    bool buffer_ready();
+
+    Timer& get_timer();
+
+    // Returns the range [0, buffer_threshold) from buffer and
+    // truncates buffer afterwards
+    std::vector<int16_t> pop_buffer();
+
+    virtual void clock(Timer* timer);
+
+private:
+    std::vector<Channel*> channels;
+    std::vector<int16_t> buffer;
+    Timer timer;
+    std::atomic<bool> buf_ready;
+
+    // We need this mutex to prevent the player from reading the buffer
+    // (via pop_buffer) while the mixer is updating the buffer
+    // (via poll_channels)
+    std::mutex buf_mutex;
+
+    void poll_channels();
+};
