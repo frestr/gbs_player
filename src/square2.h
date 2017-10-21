@@ -14,6 +14,12 @@ public:
     void set_frequency(uint16_t freq);
     uint16_t get_frequency();
 
+    virtual void NRx0_write(uint8_t value);
+    virtual void NRx1_write(uint8_t value);
+    virtual void NRx2_write(uint8_t value);
+    virtual void NRx3_write(uint8_t value);
+    virtual void NRx4_write(uint8_t value);
+
 protected:
     uint16_t freq;
 

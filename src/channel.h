@@ -31,6 +31,9 @@ public:
     void enable_length_counter(bool enabled);
     bool is_length_counter_enabled();
 
+    void set_channel_enabled(bool enabled);
+    bool is_channel_enabled();
+
     void set_frame_sequencer(Timer* frame_sequencer);
 
     // envelope is enabled on trigger
@@ -38,9 +41,19 @@ public:
     uint8_t get_envelope_period();
     bool is_envelope_add();
 
+    void enable_speakers(bool left, bool right);
+    bool is_left_speaker_enabled();
+    bool is_right_speaker_enabled();
+
     // this can be overridden in any child classes,
     // but make sure they also call the base class version
     virtual void trigger();
+
+    virtual void NRx0_write(uint8_t value) = 0;
+    virtual void NRx1_write(uint8_t value) = 0;
+    virtual void NRx2_write(uint8_t value) = 0;
+    virtual void NRx3_write(uint8_t value) = 0;
+    virtual void NRx4_write(uint8_t value) = 0;
 
 protected:
     bool channel_enabled;
@@ -61,10 +74,12 @@ protected:
 
 private:
     uint8_t curr_sample; // 4-bit
-
     uint8_t envelope_period;
     uint8_t envelope_period_counter;
     bool envelope_add;
+
+    bool left_speaker_enabled;
+    bool right_speaker_enabled;
 
     Timer* frame_sequencer;
 

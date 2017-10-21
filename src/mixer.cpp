@@ -1,8 +1,8 @@
-#include "mixer.h"
-#include <thread>
 #include <iostream>
-#include "util.h"
 #include <cassert>
+#include <thread>
+#include "mixer.h"
+#include "util.h"
 
 Mixer::Mixer()
     : buf_ready(false)
@@ -24,6 +24,24 @@ bool Mixer::buffer_ready()
 Timer& Mixer::get_timer()
 {
     return timer;
+}
+
+void Mixer::set_master_volume(uint8_t left, uint8_t right)
+{
+    assert(left < 8);
+    assert(right < 8);
+    master_volume_left = left;
+    master_volume_right = right;
+}
+
+uint8_t Mixer::get_master_volume_left()
+{
+    return master_volume_left;
+}
+
+uint8_t Mixer::get_master_volume_right()
+{
+    return master_volume_right;
 }
 
 std::vector<int16_t> Mixer::pop_buffer()
@@ -48,22 +66,28 @@ void Mixer::clock(Timer* timer)
 
 void Mixer::poll_channels()
 {
-    int16_t sample = 0;
+    int16_t left_sample = 0;
+    int16_t right_sample = 0;
     size_t channel_count = channels.size();
     for (auto& channel : channels) {
         uint8_t sample_raw = channel->get_sample();
         assert(sample_raw < 16);
-        double volume = channel->get_true_volume();
+        double channel_volume = channel->get_true_volume();
 
         // 1. convert sample from range [0, 15] to [-32768, 32767],
-        // 2. scale it (equally for all channels atm),
-        // 3. adjust the volume and
-        // 4. add the channel sample to the sample sum (mix)
-        sample += (-32768 + 4369*sample_raw) * (1.0/channel_count) * volume;
+        // 2. scale it (equally for all channels),
+        // 3. adjust for the channel volume
+        int16_t common_sample = (-32768 + 4369*sample_raw) * (1.0/channel_count) * channel_volume;
+
+        if (channel->is_left_speaker_enabled())
+            left_sample += common_sample * (master_volume_left + 1)/16.0;
+        if (channel->is_right_speaker_enabled())
+            right_sample += common_sample * (master_volume_right + 1)/16.0;
     } 
 
     buf_mutex.lock();
-    buffer.push_back(sample);
+    buffer.push_back(left_sample);
+    buffer.push_back(right_sample);
 
     if (buffer.size() >= 10*buffer_threshold) {
         // If the sysclock is perfectly synchronized to the sampling rate,

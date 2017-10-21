@@ -24,6 +24,8 @@ int main()
     clock.start();
     player.play();
 
+    apu.boot_sound();
+
     // All logic are done in separate threads
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));

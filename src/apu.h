@@ -15,6 +15,9 @@ public:
     APU(SystemClock& clock);
 
     Mixer& get_mixer();
+
+    void boot_sound();
+
 private:
     Square1 square1;
     Square2 square2;
@@ -23,4 +26,10 @@ private:
 
     Timer frame_sequencer;
     Mixer mixer;
+
+    bool power_on;
+
+    void NR50_write(uint8_t value);
+    void NR51_write(uint8_t value);
+    void NR52_write(uint8_t value);
 };

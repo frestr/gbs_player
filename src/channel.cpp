@@ -111,6 +111,22 @@ bool Channel::is_envelope_add()
     return envelope_add;
 }
 
+void Channel::enable_speakers(bool left, bool right)
+{
+    left_speaker_enabled = left;
+    right_speaker_enabled = right;
+}
+
+bool Channel::is_left_speaker_enabled()
+{
+    return left_speaker_enabled;
+}
+
+bool Channel::is_right_speaker_enabled()
+{
+    return right_speaker_enabled;
+}
+
 void Channel::enable_length_counter(bool enabled)
 {
     this->length_counter_enabled = enabled;
@@ -119,6 +135,16 @@ void Channel::enable_length_counter(bool enabled)
 bool Channel::is_length_counter_enabled()
 {
     return length_counter_enabled;
+}
+
+void Channel::set_channel_enabled(bool enabled)
+{
+    channel_enabled = enabled;
+}
+
+bool Channel::is_channel_enabled()
+{
+    return channel_enabled;
 }
 
 void Channel::trigger()

@@ -14,6 +14,12 @@ public:
     uint8_t get_width_mode();
     uint8_t get_divisor();
 
+    virtual void NRx0_write(uint8_t value);
+    virtual void NRx1_write(uint8_t value);
+    virtual void NRx2_write(uint8_t value);
+    virtual void NRx3_write(uint8_t value);
+    virtual void NRx4_write(uint8_t value);
+
 private:
     uint8_t clock_shift;
     uint8_t width_mode;

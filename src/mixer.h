@@ -28,6 +28,10 @@ public:
 
     Timer& get_timer();
 
+    void set_master_volume(uint8_t left, uint8_t right);
+    uint8_t get_master_volume_left();
+    uint8_t get_master_volume_right();
+
     // Returns the range [0, buffer_threshold) from buffer and
     // truncates buffer afterwards
     std::vector<int16_t> pop_buffer();
@@ -44,6 +48,9 @@ private:
     // (via pop_buffer) while the mixer is updating the buffer
     // (via poll_channels)
     std::mutex buf_mutex;
+
+    uint8_t master_volume_left;
+    uint8_t master_volume_right;
 
     void poll_channels();
 };

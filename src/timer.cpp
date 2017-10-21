@@ -4,6 +4,7 @@
 #include <iostream>
 
 Timer::Timer(uint64_t frequency)
+    : running(true)
 {
     set_frequency(frequency);
 }
@@ -29,6 +30,9 @@ void Timer::add_listener(TimerListener* listener)
 
 void Timer::clock()
 {
+    if (! running)
+        return;
+
     // To prevent integer underflow
     if (counter > 0)
         --counter;
@@ -37,4 +41,11 @@ void Timer::clock()
         for (auto& listener : listeners)
             listener->clock(this);
     }    
+}
+
+void Timer::set_running(bool running)
+{
+    this->running = running;
+    if (! running)
+        counter = period;
 }

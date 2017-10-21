@@ -24,6 +24,12 @@ public:
     void set_samples(std::array<uint8_t, 32> samples);
     std::array<uint8_t, 32> get_samples();
 
+    virtual void NRx0_write(uint8_t value);
+    virtual void NRx1_write(uint8_t value);
+    virtual void NRx2_write(uint8_t value);
+    virtual void NRx3_write(uint8_t value);
+    virtual void NRx4_write(uint8_t value);
+
 private:
     uint16_t freq;
     std::array<uint8_t, 32> samples;

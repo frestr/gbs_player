@@ -72,6 +72,31 @@ std::array<uint8_t, 32> Wave::get_samples()
     return samples;
 }
 
+void Wave::NRx0_write(uint8_t value)
+{
+
+}
+
+void Wave::NRx1_write(uint8_t value)
+{
+
+}
+
+void Wave::NRx2_write(uint8_t value)
+{
+
+}
+
+void Wave::NRx3_write(uint8_t value)
+{
+
+}
+
+void Wave::NRx4_write(uint8_t value)
+{
+
+}
+
 uint8_t Wave::next_phase()
 {
     sample_index = (sample_index + 1) % 32;

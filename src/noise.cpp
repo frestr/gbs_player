@@ -45,6 +45,31 @@ uint8_t Noise::get_divisor()
     return divisor;
 }
 
+void Noise::NRx0_write(uint8_t value)
+{
+
+}
+
+void Noise::NRx1_write(uint8_t value)
+{
+
+}
+
+void Noise::NRx2_write(uint8_t value)
+{
+
+}
+
+void Noise::NRx3_write(uint8_t value)
+{
+
+}
+
+void Noise::NRx4_write(uint8_t value)
+{
+
+}
+
 // Note: compared to VBA-M, the noise sounds a bit harsh. This may be because
 // VBA-M does some kind of high-pass filter
 uint8_t Noise::next_phase()

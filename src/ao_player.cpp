@@ -26,7 +26,7 @@ void AOPlayer::init()
 
     memset(&format, 0, sizeof(format));
 	format.bits = 16;
-	format.channels = 1; // only mono for now
+	format.channels = 2;
 	format.rate = mixer.SAMPLING_RATE;
 	format.byte_format = AO_FMT_LITTLE;
 

@@ -1,8 +1,8 @@
-#include "square2.h"
 #include <stdexcept>
 #include <cassert>
-#include "systemclock.h"
 #include <iostream>
+#include "square2.h"
+#include "systemclock.h"
 #include "util.h"
 
 Square2::Square2()
@@ -14,10 +14,7 @@ Square2::Square2()
 
 void Square2::set_duty_cycle(uint8_t duty_cycle)
 {
-    if (duty_cycle > 3) {
-        throw std::invalid_argument("duty_cycle must be in range [0, 3]");
-        return;
-    }
+    assert(duty_cycle < 4);
     this->duty_cycle = duty_cycle;
 }
 
@@ -37,6 +34,51 @@ void Square2::set_frequency(uint16_t freq)
 uint16_t Square2::get_frequency()
 {
     return freq;
+}
+
+void Square2::NRx0_write(uint8_t value)
+{
+    // Not used
+}
+
+void Square2::NRx1_write(uint8_t value)
+{
+    uint8_t duty = value >> 6;
+    uint8_t length = value & 0x3f;
+    set_duty_cycle(duty);
+    set_length_counter(length);
+}
+
+void Square2::NRx2_write(uint8_t value)
+{
+    uint8_t volume = value >> 4;
+    uint8_t envelope_mode = (value >> 3) & 1;
+    uint8_t envelope_period = value & 0x7;
+    set_volume(volume);
+    set_envelope(envelope_period, envelope_mode);
+}
+
+void Square2::NRx3_write(uint8_t value)
+{
+    uint8_t frequency_lower = value;
+    uint16_t frequency = get_frequency();
+    uint16_t new_freq = (frequency & 0xff00) | frequency_lower;
+    set_frequency(new_freq);
+}
+
+void Square2::NRx4_write(uint8_t value)
+{
+    uint8_t do_trigger = value >> 7;
+    uint8_t length_enable = (value >> 6) & 1;
+    enable_length_counter(length_enable);
+
+    uint8_t frequency_upper = value & 0x7;
+    uint16_t frequency = get_frequency();
+    uint16_t new_freq = (frequency & 0xff) | (frequency_upper << 8);
+    set_frequency(new_freq);
+
+    if (do_trigger == 1)
+        trigger();
 }
 
 uint8_t Square2::next_phase()
@@ -60,7 +102,7 @@ uint8_t Square2::next_phase()
     }
     // Note: 15 is the max value (we have a 4-bit DAC, so 2^4 - 1 = 15)
     uint8_t result = curr_phase < flip ? 15 : 0;
-    // One phase cycle uses 8 clocks
+    // One waveform cycle uses 8 clocks
     curr_phase = (curr_phase + 1) % 8;
     return result;
 }
