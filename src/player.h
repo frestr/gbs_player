@@ -3,11 +3,11 @@
 #include <ao/ao.h>
 #include "mixer.h"
 
-class AOPlayer
+class Player
 {
 public:
-    AOPlayer(Mixer& mixer);
-    ~AOPlayer();
+    Player(Mixer& mixer);
+    ~Player();
 
     // The ao init code is in this function instead of the constructor
     // because of the exception it may throw

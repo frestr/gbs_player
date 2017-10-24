@@ -1,21 +1,21 @@
 #include <thread>
-#include "ao_player.h"
+#include "player.h"
 #include <cstring>
 #include <iostream>
 
-AOPlayer::AOPlayer(Mixer& mixer)
+Player::Player(Mixer& mixer)
     : mixer(mixer)
 {
 
 }
 
-AOPlayer::~AOPlayer()
+Player::~Player()
 {
     ao_close(device);
     ao_shutdown();
 }
 
-void AOPlayer::init()
+void Player::init()
 {
     ao_sample_format format;
     int default_driver;
@@ -35,7 +35,7 @@ void AOPlayer::init()
     }
 }
 
-void AOPlayer::play()
+void Player::play()
 {
     if (mixer.buffer_ready()) {
         buf = mixer.pop_buffer();

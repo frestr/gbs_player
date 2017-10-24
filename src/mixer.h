@@ -8,9 +8,8 @@
 #include <atomic>
 
 /*
- * As of now, this class functions as both a DAC and mixer
- * (there's no point in actually converting digital values to 
- * voltages here, because SFML expects digital samples)
+ * Functions as both a Mixer and resampler. Maybe consider splitting it up,
+ * especially if the resampling part is to be improved
  */
 class Mixer : public TimerListener
 {
