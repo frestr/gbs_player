@@ -15,7 +15,7 @@
 class Mixer : public TimerListener
 {
 public:
-    static const int SAMPLING_RATE = 44100;
+    static const int SAMPLE_RATE = 44100;
 
     // the buffer must contain at least this amount of samples
     // before it can be considered ready

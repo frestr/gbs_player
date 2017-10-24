@@ -74,27 +74,46 @@ std::array<uint8_t, 32> Wave::get_samples()
 
 void Wave::NRx0_write(uint8_t value)
 {
-
+    uint8_t sound_enabled = (value >> 7) & 1;
+    enable_sound(sound_enabled);
 }
 
 void Wave::NRx1_write(uint8_t value)
 {
-
+    uint8_t length_load = value;
+    set_length_counter(value);
 }
 
 void Wave::NRx2_write(uint8_t value)
 {
-
+    uint8_t volume = (value >> 5) & 3;
+    set_volume(volume);
 }
 
+// NRx3 and NRx4 contain the same code as in square.cpp. DRY, so
+// should prob. do this a better way, but making Channel implement
+// only these two was a bit ugly
 void Wave::NRx3_write(uint8_t value)
 {
-
+    uint8_t frequency_lower = value;
+    uint16_t frequency = get_frequency();
+    uint16_t new_freq = (frequency & 0xFF00) | frequency_lower;
+    set_frequency(new_freq);
 }
 
 void Wave::NRx4_write(uint8_t value)
 {
+    uint8_t do_trigger = value >> 7;
+    uint8_t length_enable = (value >> 6) & 1;
+    enable_length_counter(length_enable);
 
+    uint8_t frequency_upper = value & 0x7;
+    uint16_t frequency = get_frequency();
+    uint16_t new_freq = (frequency & 0xFF) | (frequency_upper << 8);
+    set_frequency(new_freq);
+
+    if (do_trigger)
+        trigger();
 }
 
 uint8_t Wave::next_phase()

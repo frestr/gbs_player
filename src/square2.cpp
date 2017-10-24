@@ -77,7 +77,7 @@ void Square2::NRx4_write(uint8_t value)
     uint16_t new_freq = (frequency & 0xFF) | (frequency_upper << 8);
     set_frequency(new_freq);
 
-    if (do_trigger == 1)
+    if (do_trigger)
         trigger();
 }
 

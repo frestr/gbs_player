@@ -47,27 +47,41 @@ uint8_t Noise::get_divisor()
 
 void Noise::NRx0_write(uint8_t value)
 {
-
+    // not used
 }
 
 void Noise::NRx1_write(uint8_t value)
 {
-
+    uint8_t length_load = value & 0x3F; 
+    set_length_counter(length_load);
 }
 
+// Same as in Square2
 void Noise::NRx2_write(uint8_t value)
 {
-
+    uint8_t volume = value >> 4;
+    uint8_t envelope_mode = (value >> 3) & 1;
+    uint8_t envelope_period = value & 0x7;
+    set_volume(volume);
+    set_envelope(envelope_period, envelope_mode);
 }
 
 void Noise::NRx3_write(uint8_t value)
 {
-
+    uint8_t clock_shift = (value >> 4) & 0xF;
+    uint8_t width_mode = (value >> 3) & 1;
+    uint8_t divisor_code = value & 7;
+    set_parameters(clock_shift, width_mode, divisor_code);
 }
 
 void Noise::NRx4_write(uint8_t value)
 {
+    uint8_t do_trigger = value >> 7;
+    uint8_t length_enable = (value >> 6) & 1;
+    enable_length_counter(length_enable);
 
+    if (do_trigger)
+        trigger();
 }
 
 // Note: compared to VBA-M, the noise sounds a bit harsh. This may be because

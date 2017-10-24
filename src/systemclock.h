@@ -10,9 +10,6 @@ public:
     
     SystemClock();
 
-    void start();
-    /* void stop(); */
-
     void add_timer(Timer* timer);
 
     void clock();

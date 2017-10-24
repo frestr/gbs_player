@@ -8,7 +8,7 @@ Mixer::Mixer()
     : buf_ready(false)
 {
     timer.add_listener(this);
-    timer.set_frequency(SAMPLING_RATE);
+    timer.set_frequency(SAMPLE_RATE);
 }
 
 void Mixer::add_channel(Channel* channel)

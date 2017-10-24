@@ -18,6 +18,6 @@ public:
 
 private:
     Mixer& mixer;
-	ao_device *device;
-    bool playing;
+    ao_device *device;
+    std::vector<int16_t> buf;
 };
