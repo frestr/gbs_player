@@ -62,14 +62,16 @@ uint16_t Wave::get_frequency()
     return freq;
 }
 
-void Wave::set_samples(std::array<uint8_t, 32> samples)
+void Wave::set_sample(uint8_t value, uint8_t index)
 {
-    this->samples = samples;
+    assert(index < 32);
+    samples[index] = value;
 }
 
-std::array<uint8_t, 32> Wave::get_samples()
+uint8_t Wave::get_sample(uint8_t index)
 {
-    return samples;
+    assert(index < 32);
+    return samples[index];
 }
 
 void Wave::NRx0_write(uint8_t value)
@@ -81,7 +83,7 @@ void Wave::NRx0_write(uint8_t value)
 void Wave::NRx1_write(uint8_t value)
 {
     uint8_t length_load = value;
-    set_length_counter(value);
+    set_length_counter(length_load);
 }
 
 void Wave::NRx2_write(uint8_t value)
@@ -114,6 +116,31 @@ void Wave::NRx4_write(uint8_t value)
 
     if (do_trigger)
         trigger();
+}
+
+uint8_t Wave::NRx0_read()
+{
+    return sound_enabled << 7;
+}
+
+uint8_t Wave::NRx1_read()
+{
+    return length_counter & 0xFF;
+}
+
+uint8_t Wave::NRx2_read()
+{
+    return (starting_volume << 5);
+}
+
+uint8_t Wave::NRx3_read()
+{
+    return freq & 0xFF;
+}
+
+uint8_t Wave::NRx4_read()
+{
+    return (length_counter_enabled << 6) | ((freq >> 8) & 7);
 }
 
 uint8_t Wave::next_phase()

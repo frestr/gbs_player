@@ -20,6 +20,12 @@ public:
     virtual void NRx3_write(uint8_t value);
     virtual void NRx4_write(uint8_t value);
 
+    virtual uint8_t NRx0_read();
+    virtual uint8_t NRx1_read();
+    virtual uint8_t NRx2_read();
+    virtual uint8_t NRx3_read();
+    virtual uint8_t NRx4_read();
+
 protected:
     uint16_t freq;
 

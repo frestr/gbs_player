@@ -20,6 +20,8 @@ public:
 
     virtual void NRx0_write(uint8_t value);
 
+    virtual uint8_t NRx0_read();
+
 private:
     bool sweep_enabled;
     bool sweep_decrease;

@@ -84,6 +84,32 @@ void Noise::NRx4_write(uint8_t value)
         trigger();
 }
 
+uint8_t Noise::NRx0_read()
+{
+    // Not used
+    return 0;
+}
+
+uint8_t Noise::NRx1_read()
+{
+    return length_counter & 0x3F;
+}
+
+uint8_t Noise::NRx2_read()
+{
+    return (starting_volume << 4) | (envelope_add << 3) | envelope_period;
+}
+
+uint8_t Noise::NRx3_read()
+{
+    return (clock_shift << 4) | (width_mode << 3) | divisor;
+}
+
+uint8_t Noise::NRx4_read()
+{
+    return length_counter_enabled << 6;
+}
+
 // Note: compared to VBA-M, the noise sounds a bit harsh. This may be because
 // VBA-M does some kind of high-pass filter
 uint8_t Noise::next_phase()

@@ -37,13 +37,29 @@ APU::APU(SystemClock& clock)
     mixer.add_channel(&wave);
     mixer.add_channel(&noise);
 
-    regptr_table = {
+    regwrite_ptr = {
         &Channel::NRx0_write,
         &Channel::NRx1_write,
         &Channel::NRx2_write,
         &Channel::NRx3_write,
         &Channel::NRx4_write,
     };
+
+    regread_ptr = {
+        &Channel::NRx0_read,
+        &Channel::NRx1_read,
+        &Channel::NRx2_read,
+        &Channel::NRx3_read,
+        &Channel::NRx4_read,
+    };
+
+    register_mask = {{
+        {0x80, 0x3F, 0x00, 0xFF, 0xBF},
+        {0xFF, 0x3F, 0x00, 0xFF, 0xBF},
+        {0x7F, 0xFF, 0x9F, 0xFF, 0xBF},
+        {0xFF, 0xFF, 0x00, 0x00, 0xBF},
+        {0x00, 0x00, 0x70, 0x00, 0x00},
+    }};
 }
 
 Mixer& APU::get_mixer()
@@ -61,22 +77,38 @@ void APU::register_write(uint16_t addr, uint8_t value)
 
     // Call the respective register write function of the respective channel
     uint8_t i = (addr - 0xFF10) % 5;
-    if      (addr < 0xFF15) (dynamic_cast<Channel*>(&square1)->*regptr_table[i])(value);
-    else if (addr < 0xFF1A) (dynamic_cast<Channel*>(&square2)->*regptr_table[i])(value);
-    else if (addr < 0xFF1F) (dynamic_cast<Channel*>(&wave   )->*regptr_table[i])(value);
-    else if (addr < 0xFF24) (dynamic_cast<Channel*>(&noise  )->*regptr_table[i])(value);
-    else if (addr < 0xFF53) {
+    if      (addr < 0xFF15) (dynamic_cast<Channel*>(&square1)->*regwrite_ptr[i])(value);
+    else if (addr < 0xFF1A) (dynamic_cast<Channel*>(&square2)->*regwrite_ptr[i])(value);
+    else if (addr < 0xFF1F) (dynamic_cast<Channel*>(&wave   )->*regwrite_ptr[i])(value);
+    else if (addr < 0xFF24) (dynamic_cast<Channel*>(&noise  )->*regwrite_ptr[i])(value);
+    else if (addr < 0xFF27) {
         if      (i == 0) NR50_write(value);
         else if (i == 1) NR51_write(value);
         else if (i == 2) NR52_write(value);
     } else if(addr >= 0xFF30 && addr <= 0xFF3F) {
-        // set wave table value
+        wave.set_sample(value, addr - 0xFF30);
     }
 }
 
-void register_read(uint16_t addr)
+uint8_t APU::register_read(uint16_t addr)
 {
+    assert(addr >= 0xFF10 && addr <= 0xFF3F);
 
+    uint8_t i = (addr - 0xFF10) % 5;
+    if      (addr < 0xFF15) return (dynamic_cast<Channel*>(&square1)->*regread_ptr[i])() | register_mask[0][i];
+    else if (addr < 0xFF1A) return (dynamic_cast<Channel*>(&square2)->*regread_ptr[i])() | register_mask[1][i];
+    else if (addr < 0xFF1F) return (dynamic_cast<Channel*>(&wave   )->*regread_ptr[i])() | register_mask[2][i];
+    else if (addr < 0xFF24) return (dynamic_cast<Channel*>(&noise  )->*regread_ptr[i])() | register_mask[3][i];
+    else if (addr < 0xFF27) {
+        if      (i == 0) return NR50_read() | register_mask[4][i];
+        else if (i == 1) return NR51_read() | register_mask[4][i];
+        else if (i == 2) return NR52_read() | register_mask[4][i];
+    } else if(addr >= 0xFF30 && addr <= 0xFF3F) {
+        return wave.get_sample(addr - 0xFF30);
+    }
+
+    // The rest are undefined addresses that just return all 1s
+    return 0xFF;
 }
 
 void APU::boot_sound()
@@ -107,7 +139,9 @@ void APU::NR50_write(uint8_t value)
     uint8_t vin_right       = (value >> 3) & 1;
     uint8_t volume_right    = (value >> 0) & 7;
 
-    // ignore vin settings
+    // We don't use these for anything, other than returning them in NR50_read
+    this->vin_left = vin_left;
+    this->vin_right = vin_right;
 
     mixer.set_master_volume(volume_left, volume_right);
 }
@@ -159,4 +193,34 @@ void APU::NR52_write(uint8_t value)
     wave.set_channel_enabled(wave_on);
     square2.set_channel_enabled(square2_on);
     square1.set_channel_enabled(square1_on);
+}
+
+uint8_t APU::NR50_read()
+{
+    uint8_t volume_left = mixer.get_master_volume_left();
+    uint8_t volume_right = mixer.get_master_volume_right();
+    return (vin_left << 7) | (volume_left << 4) | (vin_right << 3) | volume_right;
+}
+
+uint8_t APU::NR51_read()
+{
+    uint8_t noise_left = noise.is_left_speaker_enabled();
+    uint8_t noise_right = noise.is_right_speaker_enabled();
+    uint8_t wave_left = wave.is_left_speaker_enabled();
+    uint8_t wave_right = wave.is_right_speaker_enabled();
+    uint8_t square2_left = square2.is_left_speaker_enabled();
+    uint8_t square2_right = square2.is_right_speaker_enabled();
+    uint8_t square1_left = square1.is_left_speaker_enabled();
+    uint8_t square1_right = square1.is_right_speaker_enabled();
+    return (noise_left << 7) | (wave_left << 6) | (square2_left << 5) | (square1_left << 4) |
+           (noise_right << 3) | (wave_right << 2) | (square2_right << 1) | square1_right;
+}
+
+uint8_t APU::NR52_read()
+{
+    uint8_t noise_enabled = noise.is_channel_enabled();
+    uint8_t wave_enabled = wave.is_channel_enabled();
+    uint8_t square2_enabled = square2.is_channel_enabled();
+    uint8_t square1_enabled = square1.is_channel_enabled();
+    return (power_on << 7) | (noise_enabled << 3) | (wave_enabled << 2) | (square2_enabled << 1) | square1_enabled;
 }

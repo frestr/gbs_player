@@ -81,6 +81,35 @@ void Square2::NRx4_write(uint8_t value)
         trigger();
 }
 
+uint8_t Square2::NRx0_read()
+{
+    // Not used
+    return 0;
+}
+
+uint8_t Square2::NRx1_read()
+{
+    uint8_t val = (duty_cycle << 6) | (length_counter & 0x3F);
+    std::cout << "NRx1_read: " << (unsigned int)val << "\n";
+    return val;
+}
+
+uint8_t Square2::NRx2_read()
+{
+    return (starting_volume << 4) | (envelope_add << 3) | envelope_period;
+}
+
+uint8_t Square2::NRx3_read()
+{
+    return freq & 0xFF;
+}
+
+uint8_t Square2::NRx4_read()
+{
+    // Ignore the trigger bit
+    return (length_counter_enabled << 6) | ((freq >> 8 ) & 7);
+}
+
 uint8_t Square2::next_phase()
 {
     uint8_t flip;

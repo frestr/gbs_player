@@ -74,6 +74,11 @@ void Square1::NRx0_write(uint8_t value)
     set_sweep(sweep_period, sweep_decrease, sweep_shift);
 }
 
+uint8_t Square1::NRx0_read()
+{
+    return (sweep_period << 4) | (sweep_decrease << 3) | sweep_shift;
+}
+
 void Square1::update_sweep(bool register_write)
 {
     // Note: if set to decrease, the freq will converge to a low value, but

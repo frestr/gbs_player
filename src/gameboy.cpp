@@ -1,5 +1,6 @@
 #include <chrono>
 #include <thread>
+#include <iostream>
 #include "gameboy.h"
 
 GameBoy::GameBoy()

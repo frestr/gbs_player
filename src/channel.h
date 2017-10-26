@@ -55,6 +55,12 @@ public:
     virtual void NRx3_write(uint8_t value) = 0;
     virtual void NRx4_write(uint8_t value) = 0;
 
+    virtual uint8_t NRx0_read() = 0;
+    virtual uint8_t NRx1_read() = 0;
+    virtual uint8_t NRx2_read() = 0;
+    virtual uint8_t NRx3_read() = 0;
+    virtual uint8_t NRx4_read() = 0;
+
 protected:
     bool channel_enabled;
     uint16_t length_counter; // [0, 256] for wave, [0, 64] for rest
@@ -70,13 +76,14 @@ protected:
 
     uint64_t frame_sequencer_ticks;
 
+    uint8_t envelope_period;
+    bool envelope_add;
+
     void update_envelope();
 
 private:
     uint8_t curr_sample; // 4-bit
-    uint8_t envelope_period;
     uint8_t envelope_period_counter;
-    bool envelope_add;
 
     bool left_speaker_enabled;
     bool right_speaker_enabled;

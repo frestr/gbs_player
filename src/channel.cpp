@@ -10,10 +10,12 @@ Channel::Channel()
       length_counter_enabled(false),
       volume_limit(16),
       frame_sequencer_ticks(0),
-      curr_sample(0),
       envelope_period(0),
+      envelope_add(false),
+      curr_sample(0),
       envelope_period_counter(0),
-      envelope_add(false)
+      left_speaker_enabled(false),
+      right_speaker_enabled(false)
 {
     timer.add_listener(this);
     set_volume(volume_limit - 1);
