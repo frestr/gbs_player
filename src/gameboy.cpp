@@ -6,6 +6,8 @@
 GameBoy::GameBoy()
     : apu(clock)
 {
+    apu.run_tests();
+    apu.reset();
 }
 
 void GameBoy::run()

@@ -1,8 +1,8 @@
-#include "systemclock.h"
 #include <ratio>
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include "systemclock.h"
 #include "mixer.h"
 
 SystemClock::SystemClock()

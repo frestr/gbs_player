@@ -20,12 +20,15 @@ void Noise::trigger()
 
 void Noise::set_parameters(uint8_t clock_shift, uint8_t width_mode, uint8_t divisor)
 {
-    assert(clock_shift < 14);
+    assert(clock_shift < 16);
     assert(width_mode < 2);
     assert(divisor < 8);
     this->clock_shift = clock_shift;
     this->width_mode = width_mode;
     this->divisor = divisor;    
+
+    // No clocks if clock_shift is 14 or 15
+    timer.set_running(clock_shift < 14);
 
     set_timer_frequency((1048576 / (divisor + 1 )) >> (clock_shift + 1));
 }

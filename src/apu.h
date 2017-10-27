@@ -21,6 +21,12 @@ public:
     void register_write(uint16_t addr, uint8_t value);
     uint8_t register_read(uint16_t addr);
 
+    void reset();
+
+    // This should not really be in APU itself, but rather some
+    // external test class. Defined in apu_test.cpp
+    void run_tests();
+
 private:
     Square1 square1;
     Square2 square2;

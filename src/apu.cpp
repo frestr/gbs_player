@@ -60,6 +60,8 @@ APU::APU(SystemClock& clock)
         {0xFF, 0xFF, 0x00, 0x00, 0xBF},
         {0x00, 0x00, 0x70, 0x00, 0x00},
     }};
+
+    reset();
 }
 
 Mixer& APU::get_mixer()
@@ -86,7 +88,10 @@ void APU::register_write(uint16_t addr, uint8_t value)
         else if (i == 1) NR51_write(value);
         else if (i == 2) NR52_write(value);
     } else if(addr >= 0xFF30 && addr <= 0xFF3F) {
-        wave.set_sample(value, addr - 0xFF30);
+        // The wave table has 32 samples, but pairs of samples share the
+        // same address. So we need to shift the value & double the address offset
+        wave.set_sample((value >> 4) & 0xF, (addr - 0xFF30)*2);
+        wave.set_sample(value & 0xF, (addr - 0xFF30)*2 + 1);
     }
 }
 
@@ -104,11 +109,62 @@ uint8_t APU::register_read(uint16_t addr)
         else if (i == 1) return NR51_read() | register_mask[4][i];
         else if (i == 2) return NR52_read() | register_mask[4][i];
     } else if(addr >= 0xFF30 && addr <= 0xFF3F) {
-        return wave.get_sample(addr - 0xFF30);
+        return (wave.get_sample((addr - 0xFF30)*2) << 4)
+                | wave.get_sample((addr - 0xFF30)*2 + 1);
     }
 
     // The rest are undefined addresses that just return all 1s
     return 0xFF;
+}
+
+void APU::reset()
+{
+    // Default values
+    // NR1x
+    register_write(0xFF10, 0x80);
+    register_write(0xFF11, 0xBF);
+    register_write(0xFF12, 0xF3);
+    register_write(0xFF14, 0xBF);
+
+    // NR2x
+    register_write(0xFF16, 0x3F);
+    register_write(0xFF17, 0x00);
+    register_write(0xFF19, 0xBF);
+
+    // NR3x
+    register_write(0xFF1A, 0x7F);
+    register_write(0xFF1B, 0xFF);
+    register_write(0xFF1C, 0x9F);
+    register_write(0xFF1E, 0xBF);
+
+    // NR4x
+    register_write(0xFF20, 0xFF);
+    register_write(0xFF21, 0x00);
+    register_write(0xFF22, 0x00);
+    register_write(0xFF23, 0xBF);
+
+    // NR5x
+    register_write(0xFF24, 0x77);
+    register_write(0xFF25, 0xF3);
+    register_write(0xFF26, 0xF1);
+
+    // Wave table
+    register_write(0xFF30, 0x84);
+    register_write(0xFF31, 0x40);
+    register_write(0xFF32, 0x43);
+    register_write(0xFF33, 0xAA);
+    register_write(0xFF34, 0x2D);
+    register_write(0xFF35, 0x78);
+    register_write(0xFF36, 0x92);
+    register_write(0xFF37, 0x3C);
+    register_write(0xFF38, 0x60);
+    register_write(0xFF39, 0x59);
+    register_write(0xFF3A, 0x59);
+    register_write(0xFF3B, 0xB0);
+    register_write(0xFF3C, 0x34);
+    register_write(0xFF3D, 0xB8);
+    register_write(0xFF3E, 0x2E);
+    register_write(0xFF3F, 0xDA);
 }
 
 void APU::boot_sound()

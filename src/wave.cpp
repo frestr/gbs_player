@@ -6,6 +6,7 @@
 
 Wave::Wave()
     : sample_index(0),
+      curr_sample(0),
       sound_enabled(true)
 {
     // redefinitions from Channel
@@ -14,6 +15,8 @@ Wave::Wave()
 
     set_length_counter(length_counter_limit - 1);
     samples.fill(0);
+
+    set_frequency(1024); // Default?
 }
 
 void Wave::enable_sound(bool enable)
@@ -64,6 +67,7 @@ uint16_t Wave::get_frequency()
 
 void Wave::set_sample(uint8_t value, uint8_t index)
 {
+    assert(value < 16);
     assert(index < 32);
     samples[index] = value;
 }
