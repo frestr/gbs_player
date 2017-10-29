@@ -4,11 +4,13 @@
 #include "apu.h"
 #include "mixer.h"
 #include "player.h"
+#include "cpu.h"
+#include "gbs_reader.h"
 
 class GameBoy
 {
 public:
-    GameBoy();
+    GameBoy(GBSContent& gbs_content);
 
     // Main loop
     void run();
@@ -21,5 +23,8 @@ public:
 private:
     SystemClock clock;
     APU apu;
+    CPU cpu;
     Player* player;
+
+    GBSContent gbs_content;
 };

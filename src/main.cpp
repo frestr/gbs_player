@@ -1,9 +1,20 @@
 #include <iostream>
 #include "gameboy.h"
+#include "gbs_reader.h"
+#include "cpu.h"
 
 int main()
 {
-    GameBoy game_boy;
+    GBSReader reader;
+    try {
+        reader.load_file("DMG-TRA-0.gbs");
+    } catch (std::exception& e) {
+        std::cout << "Error while loading file: " << e.what() << "\n";
+        std::cout << "Quitting...\n";
+        return 1;
+    }
+
+    GameBoy game_boy(reader.get_content());
     Player player(game_boy.get_mixer());
 
     try {

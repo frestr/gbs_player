@@ -3,48 +3,59 @@
 #include <iostream>
 #include "gameboy.h"
 
-GameBoy::GameBoy()
-    : apu(clock)
+GameBoy::GameBoy(GBSContent& gbs_content)
+    : apu(clock),
+      cpu(apu)
 {
     apu.run_tests();
     apu.reset();
+    this->gbs_content = gbs_content;
 }
 
 void GameBoy::run()
 {
     // Calculate timing constants
     const int buffer_threshold = apu.get_mixer().buffer_threshold / 2;
-    const int clocks_per_period = (SystemClock::CLOCK_RATE / Mixer::SAMPLE_RATE) * buffer_threshold;
+    const uint64_t clocks_per_period = (SystemClock::CLOCK_RATE / Mixer::SAMPLE_RATE) * buffer_threshold;
     const long int period = (static_cast<double>(buffer_threshold) / Mixer::SAMPLE_RATE) * 1000000000;
     std::chrono::nanoseconds period_duration(period);
-    
-    apu.register_write(0xFF23, 0x80); // Turn APU power on
-    apu.register_write(0xFF11, 0x80); // Set duty cycle
-    apu.register_write(0xFF12, 0xF3); // Set full volume & period for square 1
-    apu.register_write(0xFF25, 0xF3); // Enable both left/right output for square channels
-    apu.register_write(0xFF24, 0x77); // Max master volume
 
-    // Sound 1
-    apu.register_write(0xFF13, 0x83); // Set lower freq for square 1
-    apu.register_write(0xFF14, 0x87); // Set upper freq & trigger
+    cpu.gbs_load(gbs_content.load_addr, gbs_content.code);
+    cpu.gbs_init(gbs_content.init_addr, gbs_content.first_song, gbs_content.stack_pointer,
+                 gbs_content.timer_modulo, gbs_content.timer_control);
 
-    uint64_t a = 0;
+    bool init_done = false;
+
+    uint32_t cycles;
+    uint32_t instr_cycles;
+    uint32_t interrupt_rate;
+    uint32_t interrupt_counter;
     while (true) {
         auto start = std::chrono::steady_clock::now();
 
-        for (int i = 0; i < clocks_per_period; ++i) {
-            // Wait a little
-            if (a == 419430) {
-                // Sound 2
-                apu.register_write(0xFF13, 0xC1);
-                apu.register_write(0xFF14, 0x87);
-            } 
-            clock.clock();
-            ++a;
+        interrupt_rate = cpu.get_interrupt_rate();
+
+        cycles = 0;
+        while (cycles < clocks_per_period) {
+            instr_cycles = cpu.execute_instruction();
+            cycles += instr_cycles;
+            interrupt_counter += instr_cycles;
+
+            for (uint8_t i = 0; i < instr_cycles; ++i)
+                clock.clock();
+
+            if (cpu.procedure_done()) {
+                if (! init_done || interrupt_counter >= interrupt_rate) {
+                    init_done = true;
+                    interrupt_counter = 0;
+                    cpu.gbs_play(gbs_content.play_addr);
+                }
+            }
         }
 
         if (player != NULL)
             player->play();
+
         std::this_thread::sleep_until(start + period_duration);
     }
 }
