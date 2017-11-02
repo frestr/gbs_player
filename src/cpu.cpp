@@ -129,6 +129,13 @@ void CPU::clear_memory()
 
 void CPU::memory_write(uint16_t addr, uint8_t value)
 {
+    // Temp
+    if (addr >= 0xFF10 && addr <= 0xFF3F)
+        apu.register_write(addr, value);
+    else
+        state.memory[addr] = value;
+    return;
+
     // Note: some of these writes we can just ignore, while others
     // should probably be written even though they will have no effect
     // (like video RAM). So this method should be cleaned up a bit
@@ -183,6 +190,59 @@ uint8_t CPU::memory_read(uint16_t addr)
     if (addr >= 0xFF10 && addr <= 0xFF3F)
         return apu.register_read(addr);
     return state.memory[addr];
+}
+
+uint8_t CPU::pc_peek(uint8_t offset)
+{
+    return memory_read(state.pc + offset);
+}
+
+void CPU::set_BC(uint16_t value)
+{
+    state.b = (value >> 8) & 0xFF;
+    state.c = value & 0xFF;
+}
+
+void CPU::set_DE(uint16_t value)
+{
+    state.d = (value >> 8) & 0xFF;
+    state.e = value & 0xFF;
+}
+
+void CPU::set_HL(uint16_t value)
+{
+    state.h = (value >> 8) & 0xFF;
+    state.l = value & 0xFF;
+}
+
+void CPU::set_BC(uint8_t high, uint8_t low)
+{
+    set_BC((high << 8) | low);
+}
+
+void CPU::set_DE(uint8_t high, uint8_t low)
+{
+    set_DE((high << 8) | low);
+}
+
+void CPU::set_HL(uint8_t high, uint8_t low)
+{
+    set_HL((high << 8) | low);
+}
+
+uint16_t CPU::get_BC()
+{
+    return (state.b << 8) | (state.c);
+}
+
+uint16_t CPU::get_DE()
+{
+    return (state.d << 8) | (state.e);
+}
+
+uint16_t CPU::get_HL()
+{
+    return (state.h << 8) | (state.l);
 }
 
 void CPU::init_opcodes()

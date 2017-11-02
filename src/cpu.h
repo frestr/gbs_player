@@ -53,7 +53,7 @@ private:
             uint8_t n : 1; // add/sub (BCD)
             uint8_t h : 1; // half carry (BCD)
             uint8_t c : 1; // carry
-        } flags;
+        } f;
 
         std::array<uint8_t, 0xFFFF> memory;
     } state;
@@ -77,10 +77,22 @@ private:
     void init_opcodes();
 
     // Opcode helpers
-    uint8_t at_pc() { return state.memory[state.pc]; }
-    void inc_pc() { ++state.pc; }
+    uint8_t pc_peek(uint8_t offset);
 
-    // Opcodes
+    // Used to access registers pairs like one register
+    // Important: the 16-bit value is big-endian here, which means that raw values
+    // read from code must be converted first
+    void set_BC(uint16_t value);
+    void set_DE(uint16_t value);
+    void set_HL(uint16_t value);
+    void set_BC(uint8_t high, uint8_t low);
+    void set_DE(uint8_t high, uint8_t low);
+    void set_HL(uint8_t high, uint8_t low);
+    uint16_t get_BC();
+    uint16_t get_DE();
+    uint16_t get_HL();
+
+    // Opcodes (these are set in opcodes.cpp, not cpu.cpp)
     void opcode_0x00();
     void opcode_0x01();
     void opcode_0x02();
