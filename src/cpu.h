@@ -79,20 +79,26 @@ private:
     // Opcode helpers
     uint8_t pc_peek(uint8_t offset);
 
+    void stack_push(uint16_t value);
+    uint16_t stack_pop();
+
     // Used to access registers pairs like one register
     // Important: the 16-bit value is big-endian here, which means that raw values
     // read from code must be converted first
+    void set_AF(uint16_t value);
     void set_BC(uint16_t value);
     void set_DE(uint16_t value);
     void set_HL(uint16_t value);
+    void set_AF(uint8_t high, uint8_t low);
     void set_BC(uint8_t high, uint8_t low);
     void set_DE(uint8_t high, uint8_t low);
     void set_HL(uint8_t high, uint8_t low);
+    uint16_t get_AF();
     uint16_t get_BC();
     uint16_t get_DE();
     uint16_t get_HL();
 
-    // Opcodes (these are set in opcodes.cpp, not cpu.cpp)
+    // Opcodes (these are defined in opcodes.cpp)
     void opcode_0x00();
     void opcode_0x01();
     void opcode_0x02();

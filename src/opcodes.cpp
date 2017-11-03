@@ -1179,7 +1179,7 @@ void CPU::opcode_0xC0()
 // POP BC 
 void CPU::opcode_0xC1()
 {
-
+    set_BC(stack_pop());
 }
 
 // JP NZ,nn 
@@ -1203,7 +1203,7 @@ void CPU::opcode_0xC4()
 // PUSH BC 
 void CPU::opcode_0xC5()
 {
-
+    stack_push(get_BC());
 }
 
 // ADD A,n 
@@ -1275,7 +1275,7 @@ void CPU::opcode_0xD0()
 // POP DE 
 void CPU::opcode_0xD1()
 {
-
+    set_DE(stack_pop());
 }
 
 // JP NC,nn 
@@ -1299,7 +1299,7 @@ void CPU::opcode_0xD4()
 // PUSH DE 
 void CPU::opcode_0xD5()
 {
-
+    stack_push(get_DE());
 }
 
 // SUB A,n 
@@ -1371,7 +1371,7 @@ void CPU::opcode_0xE0()
 // POP HL 
 void CPU::opcode_0xE1()
 {
-
+    set_HL(stack_pop());
 }
 
 // LDH (C),A 
@@ -1395,7 +1395,7 @@ void CPU::opcode_0xE4()
 // PUSH HL 
 void CPU::opcode_0xE5()
 {
-
+    stack_push(get_HL());
 }
 
 // AND n 
@@ -1467,7 +1467,7 @@ void CPU::opcode_0xF0()
 // POP AF 
 void CPU::opcode_0xF1()
 {
-
+    set_AF(stack_pop());
 }
 
 // XX 
@@ -1491,7 +1491,7 @@ void CPU::opcode_0xF4()
 // PUSH AF 
 void CPU::opcode_0xF5()
 {
-
+    stack_push(get_AF());
 }
 
 // OR n 

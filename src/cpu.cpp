@@ -197,37 +197,77 @@ uint8_t CPU::pc_peek(uint8_t offset)
     return memory_read(state.pc + offset);
 }
 
+void CPU::stack_push(uint16_t value)
+{
+    --state.sp;
+    memory_write(state.sp, (value >> 8) & 0xFF);
+    --state.sp;
+    memory_write(state.sp, value & 0xFF);
+}
+
+uint16_t CPU::stack_pop()
+{
+    uint8_t low = memory_read(state.sp);
+    ++state.sp;
+    uint8_t high = memory_read(state.sp);
+    ++state.sp;
+    return (high << 8) | low;
+}
+
+void CPU::set_AF(uint16_t value)
+{
+    set_AF((value >> 8) & 0xFF, value & 0xFF);
+}
+
 void CPU::set_BC(uint16_t value)
 {
-    state.b = (value >> 8) & 0xFF;
-    state.c = value & 0xFF;
+    set_BC((value >> 8) & 0xFF, value & 0xFF);
 }
 
 void CPU::set_DE(uint16_t value)
 {
-    state.d = (value >> 8) & 0xFF;
-    state.e = value & 0xFF;
+    set_DE((value >> 8) & 0xFF, value & 0xFF);
 }
 
 void CPU::set_HL(uint16_t value)
 {
-    state.h = (value >> 8) & 0xFF;
-    state.l = value & 0xFF;
+    set_HL((value >> 8) & 0xFF, value & 0xFF);
+}
+
+void CPU::set_AF(uint8_t high, uint8_t low)
+{
+    state.a = high;
+    state.f.z = (low >> 7) & 1;
+    state.f.n = (low >> 6) & 1;
+    state.f.h = (low >> 5) & 1;
+    state.f.c = (low >> 4) & 1;
 }
 
 void CPU::set_BC(uint8_t high, uint8_t low)
 {
-    set_BC((high << 8) | low);
+    state.b = high;
+    state.c = low;
 }
 
 void CPU::set_DE(uint8_t high, uint8_t low)
 {
-    set_DE((high << 8) | low);
+    state.d = high;
+    state.e = low;
 }
 
 void CPU::set_HL(uint8_t high, uint8_t low)
 {
-    set_HL((high << 8) | low);
+    state.h = high;
+    state.l = low;
+}
+
+uint16_t CPU::get_AF()
+{
+    uint8_t f = ( (state.f.z << 7)
+                | (state.f.n << 6)
+                | (state.f.h << 5)
+                | (state.f.c << 4)) & 0xF0;
+    return (state.a << 8) | f;
 }
 
 uint16_t CPU::get_BC()
