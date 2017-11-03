@@ -98,10 +98,10 @@ void CPU::reset_state()
 
 void CPU::reset_flags()
 {
-    state.flags.z = 1; 
-    state.flags.n = 0; 
-    state.flags.h = 1; 
-    state.flags.c = 1; 
+    state.f.z = 1;
+    state.f.n = 0;
+    state.f.h = 1;
+    state.f.c = 1;
 }
 
 void CPU::reset_registers()
@@ -197,23 +197,6 @@ uint8_t CPU::pc_peek(uint8_t offset)
     return memory_read(state.pc + offset);
 }
 
-void CPU::stack_push(uint16_t value)
-{
-    --state.sp;
-    memory_write(state.sp, (value >> 8) & 0xFF);
-    --state.sp;
-    memory_write(state.sp, value & 0xFF);
-}
-
-uint16_t CPU::stack_pop()
-{
-    uint8_t low = memory_read(state.sp);
-    ++state.sp;
-    uint8_t high = memory_read(state.sp);
-    ++state.sp;
-    return (high << 8) | low;
-}
-
 void CPU::set_AF(uint16_t value)
 {
     set_AF((value >> 8) & 0xFF, value & 0xFF);
@@ -283,6 +266,107 @@ uint16_t CPU::get_DE()
 uint16_t CPU::get_HL()
 {
     return (state.h << 8) | (state.l);
+}
+
+void CPU::stack_push(uint16_t value)
+{
+    --state.sp;
+    memory_write(state.sp, (value >> 8) & 0xFF);
+    --state.sp;
+    memory_write(state.sp, value & 0xFF);
+}
+
+uint16_t CPU::stack_pop()
+{
+    uint8_t low = memory_read(state.sp);
+    ++state.sp;
+    uint8_t high = memory_read(state.sp);
+    ++state.sp;
+    return (high << 8) | low;
+}
+
+
+void CPU::bitwise_and(uint8_t value)
+{
+    state.a &= value;
+    state.f.z = (state.a == 0);
+    state.f.n = 0;
+    state.f.h = 1;
+    state.f.c = 0;
+}
+
+void CPU::bitwise_xor(uint8_t value)
+{
+    state.a ^= value;
+    state.f.z = (state.a == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    state.f.c = 0;
+}
+
+void CPU::bitwise_or(uint8_t value)
+{
+    state.a |= value;
+    state.f.z = (state.a == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    state.f.c = 0;
+}
+
+void CPU::add_a(uint8_t value)
+{
+    uint8_t old_a = state.a;
+    state.a += value;
+    state.f.z = (state.a == 0);
+    state.f.n = 0;
+    state.f.h = ((old_a & 0xF) + (value & 0xF) > 0xF);
+    state.f.c = (state.a < old_a); // overflow
+}
+
+void CPU::sub_a(uint8_t value)
+{
+    uint8_t old_a = state.a;
+    state.a -= value;
+    state.f.z = (state.a == 0);
+    state.f.n = 1;
+    state.f.h = ((old_a & 0xF) - (value & 0xF) > 0xF); // underflow
+    state.f.c = (state.a > old_a); // underflow
+}
+
+void CPU::adc_a(uint8_t value)
+{
+    add_a(value + state.f.c);
+}
+
+void CPU::sbc_a(uint8_t value)
+{
+    sub_a(value + state.f.c);
+}
+
+void CPU::add_hl(uint16_t value)
+{
+    uint16_t old_hl = get_HL();
+    uint16_t new_hl = old_hl + value;
+
+    state.f.n = 0;
+    state.f.h = ((old_hl & 0xFFF) + (value & 0xFFF) > 0xFFF);
+    state.f.c = (new_hl < old_hl); // overflow
+
+    set_HL(new_hl);
+}
+
+void CPU::add_sp(int8_t value)
+{
+    uint16_t old_sp = state.sp;
+    uint16_t new_sp = old_sp + value;
+
+    state.f.z = 0;
+    state.f.n = 0;
+    // TODO: Fix flags
+    /* state.f.h = ((old_hl & 0xFFF) + value > 0xFFF); */
+    /* state.f.c = (new_hl < old_hl); // overflow */
+
+    state.sp = new_sp;
 }
 
 void CPU::init_opcodes()
