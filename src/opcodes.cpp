@@ -968,145 +968,145 @@ void CPU::opcode_0x9F()
 // AND B 
 void CPU::opcode_0xA0()
 {
-    bitwise_and(state.b);
+    and_a(state.b);
 }
 
 // AND C 
 void CPU::opcode_0xA1()
 {
-    bitwise_and(state.c);
+    and_a(state.c);
 }
 
 // AND D 
 void CPU::opcode_0xA2()
 {
-    bitwise_and(state.d);
+    and_a(state.d);
 }
 
 // AND E 
 void CPU::opcode_0xA3()
 {
-    bitwise_and(state.e);
+    and_a(state.e);
 }
 
 // AND H 
 void CPU::opcode_0xA4()
 {
-    bitwise_and(state.h);
+    and_a(state.h);
 }
 
 // AND L 
 void CPU::opcode_0xA5()
 {
-    bitwise_and(state.l);
+    and_a(state.l);
 }
 
 // AND (HL) 
 void CPU::opcode_0xA6()
 {
-    bitwise_and(memory_read(get_HL()));
+    and_a(memory_read(get_HL()));
 }
 
 // AND A 
 void CPU::opcode_0xA7()
 {
-    bitwise_and(state.a);
+    and_a(state.a);
 }
 
 // XOR B 
 void CPU::opcode_0xA8()
 {
-    bitwise_xor(state.b);
+    xor_a(state.b);
 }
 
 // XOR C 
 void CPU::opcode_0xA9()
 {
-    bitwise_xor(state.c);
+    xor_a(state.c);
 }
 
 // XOR D 
 void CPU::opcode_0xAA()
 {
-    bitwise_xor(state.d);
+    xor_a(state.d);
 }
 
 // XOR E 
 void CPU::opcode_0xAB()
 {
-    bitwise_xor(state.e);
+    xor_a(state.e);
 }
 
 // XOR H 
 void CPU::opcode_0xAC()
 {
-    bitwise_xor(state.h);
+    xor_a(state.h);
 }
 
 // XOR L 
 void CPU::opcode_0xAD()
 {
-    bitwise_xor(state.l);
+    xor_a(state.l);
 }
 
 // XOR (HL) 
 void CPU::opcode_0xAE()
 {
-    bitwise_xor(memory_read(get_HL()));
+    xor_a(memory_read(get_HL()));
 }
 
 // XOR A
 void CPU::opcode_0xAF()
 {
-    bitwise_xor(state.a);
+    xor_a(state.a);
 }
 
 // OR B 
 void CPU::opcode_0xB0()
 {
-    bitwise_or(state.b);
+    or_a(state.b);
 }
 
 // OR C 
 void CPU::opcode_0xB1()
 {
-    bitwise_or(state.c);
+    or_a(state.c);
 }
 
 // OR D 
 void CPU::opcode_0xB2()
 {
-    bitwise_or(state.d);
+    or_a(state.d);
 }
 
 // OR E 
 void CPU::opcode_0xB3()
 {
-    bitwise_or(state.e);
+    or_a(state.e);
 }
 
 // OR H 
 void CPU::opcode_0xB4()
 {
-    bitwise_or(state.h);
+    or_a(state.h);
 }
 
 // OR L 
 void CPU::opcode_0xB5()
 {
-    bitwise_or(state.l);
+    or_a(state.l);
 }
 
 // OR (HL) 
 void CPU::opcode_0xB6()
 {
-    bitwise_or(memory_read(get_HL()));
+    or_a(memory_read(get_HL()));
 }
 
 // OR A 
 void CPU::opcode_0xB7()
 {
-    bitwise_or(state.a);
+    or_a(state.a);
 }
 
 // CP B 
@@ -1388,7 +1388,7 @@ void CPU::opcode_0xE5()
 // AND n 
 void CPU::opcode_0xE6()
 {
-    bitwise_and(pc_peek(1));
+    and_a(pc_peek(1));
 }
 
 // RST 20 
@@ -1400,7 +1400,7 @@ void CPU::opcode_0xE7()
 // ADD SP,d 
 void CPU::opcode_0xE8()
 {
-    add_sp(pc_peek(1));
+    state.sp = add_sp(pc_peek(1));
 }
 
 // JP (HL) 
@@ -1496,12 +1496,7 @@ void CPU::opcode_0xF7()
 // LDHL SP,d 
 void CPU::opcode_0xF8()
 {
-    set_HL(state.sp + static_cast<int8_t>(pc_peek(1)));
-    state.f.z = 0;
-    state.f.n = 0;
-    // TODO: Set flags
-    // state.f.h = ?;
-    // state.f.c = ?;
+    set_HL(add_sp(pc_peek(1)));
 }
 
 // LD SP,HL 

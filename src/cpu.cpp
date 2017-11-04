@@ -8,6 +8,85 @@ CPU::CPU(APU& apu)
     : apu(apu),
       sp_start(0)
 {
+    // Calculated from this sheet: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+    // We assume that invalid opcodes have length 1
+    opcode_lengths = {
+        1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
+        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 2, 3, 3, 2, 1,
+        1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1,
+        2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
+        2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
+    };
+
+    // Assume that invalid opcodes use 4 cycles
+    opcode_cycles = {
+        4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
+        4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+        8, 12, 8, 8, 4, 4, 8, 4, 8, 8, 8, 8, 4, 4, 8, 4,
+        8, 12, 8, 8, 12, 12, 12, 4, 8, 8, 8, 8, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        8, 12, 12, 16, 12, 16, 8, 16, 8, 16, 12, 4, 12, 24, 8, 16,
+        8, 12, 12, 4, 12, 16, 8, 16, 8, 16, 12, 4, 12, 4, 8, 16,
+        12, 12, 8, 4, 4, 16, 8, 16, 16, 4, 16, 4, 4, 4, 8, 16,
+        12, 12, 8, 4, 4, 16, 8, 16, 12, 8, 16, 4, 4, 4, 8, 16
+    };
+
+    // Used for opcodes with prefix 0xCB
+    opcode_cycles_extended = {
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+    };
+
+    opcode_cycles_branch = {
+        4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
+        4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+        12, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+        12, 12, 8, 8, 12, 12, 12, 4, 12, 8, 8, 8, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
+        20, 12, 16, 16, 24, 16, 8, 16, 20, 16, 16, 4, 24, 24, 8, 16,
+        20, 12, 16, 4, 24, 16, 8, 16, 20, 16, 16, 4, 24, 4, 8, 16,
+        12, 12, 8, 4, 4, 16, 8, 16, 16, 4, 16, 4, 4, 4, 8, 16,
+        12, 12, 8, 4, 4, 16, 8, 16, 12, 8, 16, 4, 4, 4, 8, 16,
+    };
     init_opcodes();
     reset_state();
 }
@@ -55,10 +134,17 @@ uint8_t CPU::execute_instruction()
 
     (this->*opcodes[opcode])();
 
-    ++state.pc;
+    uint8_t pc_delta = opcode_lengths[opcode];
 
-    // Return some value based on a lookup table (not 1)
-    return 1;
+    uint8_t cycles = opcode_cycles[opcode];
+    if (opcode == 0xCB)
+        cycles = opcode_cycles_extended[pc_peek(1)];
+    else if (/* branch taken */ false)
+        cycles = opcode_cycles_branch[opcode];
+
+    state.pc += pc_delta;
+
+    return cycles;
 }
 
 bool CPU::procedure_done()
@@ -286,7 +372,7 @@ uint16_t CPU::stack_pop()
 }
 
 
-void CPU::bitwise_and(uint8_t value)
+void CPU::and_a(uint8_t value)
 {
     state.a &= value;
     state.f.z = (state.a == 0);
@@ -295,7 +381,7 @@ void CPU::bitwise_and(uint8_t value)
     state.f.c = 0;
 }
 
-void CPU::bitwise_xor(uint8_t value)
+void CPU::xor_a(uint8_t value)
 {
     state.a ^= value;
     state.f.z = (state.a == 0);
@@ -304,7 +390,7 @@ void CPU::bitwise_xor(uint8_t value)
     state.f.c = 0;
 }
 
-void CPU::bitwise_or(uint8_t value)
+void CPU::or_a(uint8_t value)
 {
     state.a |= value;
     state.f.z = (state.a == 0);
@@ -340,7 +426,7 @@ void CPU::adc_a(uint8_t value)
 
 void CPU::sbc_a(uint8_t value)
 {
-    sub_a(value + state.f.c);
+    sub_a(value - state.f.c);
 }
 
 void CPU::add_hl(uint16_t value)
@@ -355,18 +441,17 @@ void CPU::add_hl(uint16_t value)
     set_HL(new_hl);
 }
 
-void CPU::add_sp(int8_t value)
+uint16_t CPU::add_sp(int8_t value)
 {
     uint16_t old_sp = state.sp;
-    uint16_t new_sp = old_sp + value;
+    int32_t result = static_cast<int32_t>(old_sp) + value;
 
     state.f.z = 0;
     state.f.n = 0;
-    // TODO: Fix flags
-    /* state.f.h = ((old_hl & 0xFFF) + value > 0xFFF); */
-    /* state.f.c = (new_hl < old_hl); // overflow */
+    state.f.h = (((old_sp ^ value ^ (result & 0xFFFF)) & 0x10) == 0x10);
+    state.f.c = (((old_sp ^ value ^ (result & 0xFFFF)) & 0x100) == 0x100);
 
-    state.sp = new_sp;
+    return static_cast<uint16_t>(result);
 }
 
 void CPU::init_opcodes()

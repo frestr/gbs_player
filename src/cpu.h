@@ -37,6 +37,11 @@ private:
     APU& apu;
     std::vector<uint8_t> rom_file;
 
+    std::array<uint8_t, 256> opcode_lengths;
+    std::array<uint8_t, 256> opcode_cycles;
+    std::array<uint8_t, 256> opcode_cycles_extended;
+    std::array<uint8_t, 256> opcode_cycles_branch; // extra cycles when branching
+
     struct CPUState {
         uint8_t a;
         uint8_t b;
@@ -98,9 +103,9 @@ private:
     void stack_push(uint16_t value);
     uint16_t stack_pop();
 
-    void bitwise_and(uint8_t value);
-    void bitwise_xor(uint8_t value);
-    void bitwise_or(uint8_t value);
+    void and_a(uint8_t value);
+    void xor_a(uint8_t value);
+    void or_a(uint8_t value);
 
     void add_a(uint8_t value);
     void sub_a(uint8_t value);
@@ -108,7 +113,10 @@ private:
     void sbc_a(uint8_t value); // sub with carry
 
     void add_hl(uint16_t value);
-    void add_sp(int8_t value); // signed immediate
+    // This method doesn't modify sp, but rather just returns the result
+    // This is because both 0xE8 and 0xF8 can use this method
+    // (It affects flags though)
+    uint16_t add_sp(int8_t value); // signed immediate
 
     // Opcodes (these are defined in opcodes.cpp)
     void opcode_0x00();
