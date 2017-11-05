@@ -6,10 +6,13 @@
 
 CPU::CPU(APU& apu)
     : apu(apu),
-      sp_start(0)
+      load_addr(0),
+      sp_start(0),
+      branch_taken(false),
+      hanging(false)
 {
     // Calculated from this sheet: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-    // We assume that invalid opcodes have length 1
+    // We assume that invalid opcodes have length 1 (doesn't really matter)
     opcode_lengths = {
         1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
         2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
@@ -31,62 +34,63 @@ CPU::CPU(APU& apu)
 
     // Assume that invalid opcodes use 4 cycles
     opcode_cycles = {
-        4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
-        4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
-        8, 12, 8, 8, 4, 4, 8, 4, 8, 8, 8, 8, 4, 4, 8, 4,
-        8, 12, 8, 8, 12, 12, 12, 4, 8, 8, 8, 8, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        8, 12, 12, 16, 12, 16, 8, 16, 8, 16, 12, 4, 12, 24, 8, 16,
-        8, 12, 12, 4, 12, 16, 8, 16, 8, 16, 12, 4, 12, 4, 8, 16,
-        12, 12, 8, 4, 4, 16, 8, 16, 16, 4, 16, 4, 4, 4, 8, 16,
-        12, 12, 8, 4, 4, 16, 8, 16, 12, 8, 16, 4, 4, 4, 8, 16
+         4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4,
+         4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4,
+         8, 12,  8,  8,  4,  4,  8,  4,  8,  8,  8,  8,  4,  4,  8,  4,
+         8, 12,  8,  8, 12, 12, 12,  4,  8,  8,  8,  8,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         8,  8,  8,  8,  8,  8,  4,  8,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         8, 12, 12, 16, 12, 16,  8, 16,  8, 16, 12,  4, 12, 24,  8, 16,
+         8, 12, 12,  4, 12, 16,  8, 16,  8, 16, 12,  4, 12,  4,  8, 16,
+        12, 12,  8,  4,  4, 16,  8, 16, 16,  4, 16,  4,  4,  4,  8, 16,
+        12, 12,  8,  4,  4, 16,  8, 16, 12,  8, 16,  4,  4,  4,  8, 16
     };
 
     // Used for opcodes with prefix 0xCB
     opcode_cycles_extended = {
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
-        8, 8, 8, 8, 8, 8, 16, 8, 8, 8, 8, 8, 8, 8, 16, 8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
+         8,  8,  8,  8,  8,  8, 16,  8,  8,  8,  8,  8,  8,  8, 16,  8,
     };
 
     opcode_cycles_branch = {
-        4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
-        4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
-        12, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
-        12, 12, 8, 8, 12, 12, 12, 4, 12, 8, 8, 8, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-        20, 12, 16, 16, 24, 16, 8, 16, 20, 16, 16, 4, 24, 24, 8, 16,
-        20, 12, 16, 4, 24, 16, 8, 16, 20, 16, 16, 4, 24, 4, 8, 16,
-        12, 12, 8, 4, 4, 16, 8, 16, 16, 4, 16, 4, 4, 4, 8, 16,
-        12, 12, 8, 4, 4, 16, 8, 16, 12, 8, 16, 4, 4, 4, 8, 16,
+         4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4,
+         4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4,
+        12, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4,
+        12, 12,  8,  8, 12, 12, 12,  4, 12,  8,  8,  8,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         8,  8,  8,  8,  8,  8,  4,  8,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+         4,  4,  4,  4,  4,  4,  8,  4,  4,  4,  4,  4,  4,  4,  8,  4,
+        20, 12, 16, 16, 24, 16,  8, 16, 20, 16, 16,  4, 24, 24,  8, 16,
+        20, 12, 16,  4, 24, 16,  8, 16, 20, 16, 16,  4, 24,  4,  8, 16,
+        12, 12,  8,  4,  4, 16,  8, 16, 16,  4, 16,  4,  4,  4,  8, 16,
+        12, 12,  8,  4,  4, 16,  8, 16, 12,  8, 16,  4,  4,  4,  8, 16,
     };
+
     init_opcodes();
     reset_state();
 }
@@ -95,6 +99,7 @@ void CPU::gbs_load(uint16_t load_addr, std::vector<uint8_t>& data)
 {
     assert(load_addr < 0x8000);
     rom_file = data; 
+    this->load_addr = load_addr;
 
     // Check whether the data to be loaded all fits into the two rom banks or not
     uint16_t addr_end = 0x8000;
@@ -139,17 +144,18 @@ uint8_t CPU::execute_instruction()
     uint8_t cycles = opcode_cycles[opcode];
     if (opcode == 0xCB)
         cycles = opcode_cycles_extended[pc_peek(1)];
-    else if (/* branch taken */ false)
+    else if (branch_taken)
         cycles = opcode_cycles_branch[opcode];
 
-    state.pc += pc_delta;
+    if (! branch_taken)
+        state.pc += pc_delta;
 
     return cycles;
 }
 
 bool CPU::procedure_done()
 {
-    return state.sp < sp_start;
+    return state.sp > sp_start;
 }
 
 uint32_t CPU::get_interrupt_rate()
@@ -175,6 +181,11 @@ uint32_t CPU::get_interrupt_rate()
     return SystemClock::CLOCK_RATE / (counter_rate / (256 - state.memory[0xFF06]));
 }
 
+bool CPU::is_hanging()
+{
+    return hanging;
+}
+
 void CPU::reset_state()
 {
     reset_flags();
@@ -188,6 +199,7 @@ void CPU::reset_flags()
     state.f.n = 0;
     state.f.h = 1;
     state.f.c = 1;
+    state.interrupts_enabled = false; // is this correct?
 }
 
 void CPU::reset_registers()
@@ -452,6 +464,146 @@ uint16_t CPU::add_sp(int8_t value)
     state.f.c = (((old_sp ^ value ^ (result & 0xFFFF)) & 0x100) == 0x100);
 
     return static_cast<uint16_t>(result);
+}
+
+void CPU::jump(uint8_t addr_high, uint8_t addr_low, bool condition)
+{
+    if (condition) {
+        branch_taken = true;
+        state.pc = addr_high | addr_low;
+    } else {
+        branch_taken = false;
+    }
+}
+
+void CPU::jump(uint16_t addr, bool condition)
+{
+    jump((addr >> 8) & 0xFF, addr & 0xFF, condition);
+}
+
+void CPU::call(uint8_t addr_high, uint8_t addr_low, bool condition)
+{
+    if (condition) {
+        // push the address of the next instruction. +3 because call
+        // instructions always have length 3
+        stack_push(state.pc + 3);
+    }
+    jump(addr_high, addr_low, condition);
+}
+
+void CPU::rst(uint8_t offset)
+{
+    stack_push(state.pc);
+    // In a normal GBZ80 implementation, addr would be equal to offset
+    // (i.e. 0x0000 + offset), but because we are implementing a gbs player,
+    // we have to add it to the load_addr instead
+    uint16_t addr = load_addr + offset;
+    jump((addr >> 8) & 0xFF, addr & 0xFF);
+}
+
+uint8_t CPU::rlc(uint8_t value)
+{
+    state.f.c = ((value & 0x80) == 1);
+    value <<= 1;
+    value |= state.f.c;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::rrc(uint8_t value)
+{
+    state.f.c = ((value & 1) == 1);
+    value >>= 1;
+    value |= state.f.c << 7;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::rl(uint8_t value)
+{
+    uint8_t old_carry = state.f.c;
+    state.f.c = ((value & 0x80) == 1);
+    value <<= 1;
+    value |= old_carry;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::rr(uint8_t value)
+{
+    uint8_t old_carry = state.f.c;
+    state.f.c = ((value & 1) == 1);
+    value >>= 1;
+    value |= (old_carry << 7);
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::sla(uint8_t value)
+{
+    state.f.c = ((value & 0x80) == 1);
+    value <<= 1;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::sra(uint8_t value)
+{
+    uint8_t old_b7 = value & 0x80;
+    state.f.c = ((value & 1) == 1);
+    value >>= 1;
+    value |= old_b7;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+uint8_t CPU::swap(uint8_t value)
+{
+    value = ((value << 4) & 0xF0) | ((value >> 4) & 0x0F);
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    state.f.c = 0;
+    return value;
+}
+
+uint8_t CPU::srl(uint8_t value)
+{
+    state.f.c = ((value & 1) == 1);
+    value >>= 1;
+    state.f.z = (value == 0);
+    state.f.n = 0;
+    state.f.h = 0;
+    return value;
+}
+
+void CPU::bit(uint8_t bit, uint8_t value)
+{
+    state.f.z = ((value & (1 << bit)) == 0);
+    state.f.n = 0;
+    state.f.h = 1;
+}
+
+uint8_t CPU::res(uint8_t bit, uint8_t value)
+{
+    return value & ~(1 << bit);
+}
+
+uint8_t CPU::set(uint8_t bit, uint8_t value)
+{
+    return value | (1 << bit);
 }
 
 void CPU::init_opcodes()

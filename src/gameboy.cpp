@@ -24,13 +24,14 @@ void GameBoy::run()
     cpu.gbs_init(gbs_content.init_addr, gbs_content.first_song, gbs_content.stack_pointer,
                  gbs_content.timer_modulo, gbs_content.timer_control);
 
+    bool running = true;
     bool init_done = false;
 
     uint32_t cycles;
     uint32_t instr_cycles;
     uint32_t interrupt_rate;
     uint32_t interrupt_counter;
-    while (true) {
+    while (running) {
         auto start = std::chrono::steady_clock::now();
 
         interrupt_rate = cpu.get_interrupt_rate();
@@ -38,6 +39,13 @@ void GameBoy::run()
         cycles = 0;
         while (cycles < clocks_per_period) {
             instr_cycles = cpu.execute_instruction();
+
+            if (cpu.is_hanging()) {
+                std::cout << "CPU is hanging. Quitting...\n";
+                running = false;
+                break;
+            }
+
             cycles += instr_cycles;
             interrupt_counter += instr_cycles;
 

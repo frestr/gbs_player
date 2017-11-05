@@ -33,9 +33,12 @@ public:
     // (NB: this can change between cycles)
     uint32_t get_interrupt_rate();
 
+    bool is_hanging();
+
 private:
     APU& apu;
     std::vector<uint8_t> rom_file;
+    uint16_t load_addr;
 
     std::array<uint8_t, 256> opcode_lengths;
     std::array<uint8_t, 256> opcode_cycles;
@@ -60,6 +63,8 @@ private:
             uint8_t c : 1; // carry
         } f;
 
+        bool interrupts_enabled;
+
         std::array<uint8_t, 0xFFFF> memory;
     } state;
 
@@ -67,6 +72,9 @@ private:
 
     typedef void (CPU::*Opcode)();
     std::array<Opcode, 256> opcodes;
+
+    bool branch_taken;
+    bool hanging;
 
     void reset_state();
     void reset_flags();
@@ -100,6 +108,7 @@ private:
     uint16_t get_DE();
     uint16_t get_HL();
 
+    // --- Generic opcode implementations ---
     void stack_push(uint16_t value);
     uint16_t stack_pop();
 
@@ -118,7 +127,25 @@ private:
     // (It affects flags though)
     uint16_t add_sp(int8_t value); // signed immediate
 
-    // Opcodes (these are defined in opcodes.cpp)
+    void jump(uint8_t addr_high, uint8_t addr_low, bool condition);
+    void jump(uint16_t addr, bool condition);
+    void call(uint8_t addr_high, uint8_t addr_low, bool condition);
+    void rst(uint8_t offset);
+
+    uint8_t rlc(uint8_t value);
+    uint8_t rrc(uint8_t value);
+    uint8_t rl(uint8_t value);
+    uint8_t rr(uint8_t value);
+    uint8_t sla(uint8_t value);
+    uint8_t sra(uint8_t value);
+    uint8_t swap(uint8_t value);
+    uint8_t srl(uint8_t value);
+
+    void bit(uint8_t bit, uint8_t value);
+    uint8_t res(uint8_t bit, uint8_t value);
+    uint8_t set(uint8_t bit, uint8_t value);
+
+    // --- Raw opcodes --- (these are defined in opcodes.cpp)
     void opcode_0x00();
     void opcode_0x01();
     void opcode_0x02();
