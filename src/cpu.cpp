@@ -427,8 +427,8 @@ void CPU::sub_a(uint8_t value)
     state.a -= value;
     state.f.z = (state.a == 0);
     state.f.n = 1;
-    state.f.h = ((old_a & 0xF) - (value & 0xF) > 0xF); // underflow
-    state.f.c = (state.a > old_a); // underflow
+    state.f.h = ((old_a & 0xF) - (value & 0xF) <= 0xF);
+    state.f.c = (state.a <= old_a);
 }
 
 void CPU::adc_a(uint8_t value)
@@ -439,6 +439,14 @@ void CPU::adc_a(uint8_t value)
 void CPU::sbc_a(uint8_t value)
 {
     sub_a(value - state.f.c);
+}
+
+void CPU::cp_a(uint8_t value)
+{
+    state.f.z = (state.a == value);
+    state.f.n = 1;
+    state.f.h = (((state.a - value) & 0xF) > (state.a & 0xF));
+    state.f.c = (state.a < value);
 }
 
 void CPU::add_hl(uint16_t value)
@@ -501,92 +509,84 @@ void CPU::rst(uint8_t offset)
     jump((addr >> 8) & 0xFF, addr & 0xFF);
 }
 
-uint8_t CPU::rlc(uint8_t value)
+void CPU::rlc(uint8_t& reg)
 {
-    state.f.c = ((value & 0x80) == 1);
-    value <<= 1;
-    value |= state.f.c;
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 0x80) == 1);
+    reg <<= 1;
+    reg |= state.f.c;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::rrc(uint8_t value)
+void CPU::rrc(uint8_t& reg)
 {
-    state.f.c = ((value & 1) == 1);
-    value >>= 1;
-    value |= state.f.c << 7;
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 1) == 1);
+    reg >>= 1;
+    reg |= state.f.c << 7;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::rl(uint8_t value)
+void CPU::rl(uint8_t& reg)
 {
     uint8_t old_carry = state.f.c;
-    state.f.c = ((value & 0x80) == 1);
-    value <<= 1;
-    value |= old_carry;
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 0x80) == 1);
+    reg <<= 1;
+    reg |= old_carry;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::rr(uint8_t value)
+void CPU::rr(uint8_t& reg)
 {
     uint8_t old_carry = state.f.c;
-    state.f.c = ((value & 1) == 1);
-    value >>= 1;
-    value |= (old_carry << 7);
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 1) == 1);
+    reg >>= 1;
+    reg |= (old_carry << 7);
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::sla(uint8_t value)
+void CPU::sla(uint8_t& reg)
 {
-    state.f.c = ((value & 0x80) == 1);
-    value <<= 1;
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 0x80) == 1);
+    reg <<= 1;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::sra(uint8_t value)
+void CPU::sra(uint8_t& reg)
 {
-    uint8_t old_b7 = value & 0x80;
-    state.f.c = ((value & 1) == 1);
-    value >>= 1;
-    value |= old_b7;
-    state.f.z = (value == 0);
+    uint8_t old_b7 = reg & 0x80;
+    state.f.c = ((reg & 1) == 1);
+    reg >>= 1;
+    reg |= old_b7;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
-uint8_t CPU::swap(uint8_t value)
+void CPU::swap(uint8_t& reg)
 {
-    value = ((value << 4) & 0xF0) | ((value >> 4) & 0x0F);
-    state.f.z = (value == 0);
+    reg = ((reg << 4) & 0xF0) | ((reg >> 4) & 0x0F);
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
     state.f.c = 0;
-    return value;
 }
 
-uint8_t CPU::srl(uint8_t value)
+void CPU::srl(uint8_t& reg)
 {
-    state.f.c = ((value & 1) == 1);
-    value >>= 1;
-    state.f.z = (value == 0);
+    state.f.c = ((reg & 1) == 1);
+    reg >>= 1;
+    state.f.z = (reg == 0);
     state.f.n = 0;
     state.f.h = 0;
-    return value;
 }
 
 void CPU::bit(uint8_t bit, uint8_t value)
@@ -596,14 +596,42 @@ void CPU::bit(uint8_t bit, uint8_t value)
     state.f.h = 1;
 }
 
-uint8_t CPU::res(uint8_t bit, uint8_t value)
+void CPU::res(uint8_t bit, uint8_t& reg)
 {
-    return value & ~(1 << bit);
+    reg &= ~(1 << bit);
 }
 
-uint8_t CPU::set(uint8_t bit, uint8_t value)
+void CPU::set(uint8_t bit, uint8_t& reg)
 {
-    return value | (1 << bit);
+    reg |= (1 << bit);
+}
+
+void CPU::inc(uint8_t& reg)
+{
+    uint8_t old_reg = reg;
+    ++reg;
+    state.f.z = (reg == 0);
+    state.f.n = 0;
+    state.f.h = (((old_reg & 0x8) == 1) && ((reg & 0x8) == 0));
+}
+
+void CPU::dec(uint8_t& reg)
+{
+    uint8_t old_reg = reg;
+    --reg;
+    state.f.z = (reg == 0);
+    state.f.n = 1;
+    state.f.h = (((old_reg ^ reg) & 0x10) == 0);
+}
+
+uint16_t CPU::inc(uint16_t val)
+{
+    return ++val;
+}
+
+uint16_t CPU::dec(uint16_t val)
+{
+    return --val;
 }
 
 void CPU::init_opcodes()

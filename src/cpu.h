@@ -121,6 +121,8 @@ private:
     void adc_a(uint8_t value); // add with carry
     void sbc_a(uint8_t value); // sub with carry
 
+    void cp_a(uint8_t value);
+
     void add_hl(uint16_t value);
     // This method doesn't modify sp, but rather just returns the result
     // This is because both 0xE8 and 0xF8 can use this method
@@ -132,18 +134,23 @@ private:
     void call(uint8_t addr_high, uint8_t addr_low, bool condition);
     void rst(uint8_t offset);
 
-    uint8_t rlc(uint8_t value);
-    uint8_t rrc(uint8_t value);
-    uint8_t rl(uint8_t value);
-    uint8_t rr(uint8_t value);
-    uint8_t sla(uint8_t value);
-    uint8_t sra(uint8_t value);
-    uint8_t swap(uint8_t value);
-    uint8_t srl(uint8_t value);
+    void rlc(uint8_t& reg);
+    void rrc(uint8_t& reg);
+    void rl(uint8_t& reg);
+    void rr(uint8_t& reg);
+    void sla(uint8_t& reg);
+    void sra(uint8_t& reg);
+    void swap(uint8_t& reg);
+    void srl(uint8_t& reg);
 
     void bit(uint8_t bit, uint8_t value);
-    uint8_t res(uint8_t bit, uint8_t value);
-    uint8_t set(uint8_t bit, uint8_t value);
+    void res(uint8_t bit, uint8_t& reg);
+    void set(uint8_t bit, uint8_t& reg);
+
+    void inc(uint8_t& reg);
+    void dec(uint8_t& reg);
+    uint16_t inc(uint16_t val); // it's easier with the 16 bit regs if the value is returned
+    uint16_t dec(uint16_t val);
 
     // --- Raw opcodes --- (these are defined in opcodes.cpp)
     void opcode_0x00();
