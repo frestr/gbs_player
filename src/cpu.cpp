@@ -9,7 +9,9 @@ CPU::CPU(APU& apu)
       load_addr(0),
       sp_start(0),
       branch_taken(false),
-      hanging(false)
+      hanging(false),
+      halted(false),
+      stopped(false)
 {
     // Calculated from this sheet: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
     // We assume that invalid opcodes have length 1 (doesn't really matter)
@@ -129,13 +131,22 @@ void CPU::gbs_init(uint16_t init_addr, uint8_t song_num, uint16_t stack_pointer,
 
 void CPU::gbs_play(uint16_t play_addr)
 {
-    sp_start = state.sp;
+    // If the procedure was completed, state.sp will be higher than it
+    // was at the beginning (because the last RET pops values that was
+    // not pushed by the code). If that is the case, then reset it
+    if (procedure_done())
+        state.sp = sp_start;
+    else
+        sp_start = state.sp;
     state.pc = play_addr;
+    halted = false;
 }
 
 uint8_t CPU::execute_instruction()
 {
     uint8_t opcode = state.memory[state.pc];
+
+    branch_taken = false;
 
     (this->*opcodes[opcode])();
 
@@ -160,9 +171,11 @@ bool CPU::procedure_done()
 
 uint32_t CPU::get_interrupt_rate()
 {
+    // Use v-blank interrupt (59.7 Hz)
     if (((state.memory[0xFF07] >> 2) & 1) == 0)
         return static_cast<uint32_t>(SystemClock::CLOCK_RATE / 59.7);
 
+    // Use timer interrupt
     uint32_t counter_rate;
     switch (state.memory[0xFF07] & 3) {
         case 0:
@@ -184,6 +197,16 @@ uint32_t CPU::get_interrupt_rate()
 bool CPU::is_hanging()
 {
     return hanging;
+}
+
+bool CPU::is_halted()
+{
+    return halted;
+}
+
+bool CPU::is_stopped()
+{
+    return stopped;
 }
 
 void CPU::reset_state()
@@ -478,7 +501,7 @@ void CPU::jump(uint8_t addr_high, uint8_t addr_low, bool condition)
 {
     if (condition) {
         branch_taken = true;
-        state.pc = addr_high | addr_low;
+        state.pc = (addr_high << 8) | addr_low;
     } else {
         branch_taken = false;
     }

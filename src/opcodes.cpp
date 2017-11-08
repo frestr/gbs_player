@@ -100,7 +100,7 @@ void CPU::opcode_0x0F()
 // STOP 
 void CPU::opcode_0x10()
 {
-
+    stopped = true;
 }
 
 // LD DE,nn 
@@ -148,7 +148,7 @@ void CPU::opcode_0x17()
 // JR n 
 void CPU::opcode_0x18()
 {
-    jump(state.pc + pc_peek(1), true);
+    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), true);
 }
 
 // ADD HL,DE 
@@ -196,7 +196,7 @@ void CPU::opcode_0x1F()
 // JR NZ,n 
 void CPU::opcode_0x20()
 {
-    jump(state.pc + pc_peek(1), ! state.f.z);
+    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), ! state.f.z);
 }
 
 // LD HL,nn 
@@ -245,7 +245,7 @@ void CPU::opcode_0x27()
 // JR Z,n 
 void CPU::opcode_0x28()
 {
-    jump(state.pc + pc_peek(1), state.f.z);
+    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), state.f.z);
 }
 
 // ADD HL,HL 
@@ -296,7 +296,7 @@ void CPU::opcode_0x2F()
 // JR NC,n 
 void CPU::opcode_0x30()
 {
-    jump(state.pc + pc_peek(1), ! state.f.c);
+    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), ! state.f.c);
 }
 
 // LD SP,nn 
@@ -347,7 +347,7 @@ void CPU::opcode_0x37()
 // JR C,n 
 void CPU::opcode_0x38()
 {
-    jump(state.pc + pc_peek(1), state.f.c);
+    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), state.f.c);
 }
 
 // ADD HL,SP 
@@ -722,7 +722,7 @@ void CPU::opcode_0x75()
 // HALT 
 void CPU::opcode_0x76()
 {
-
+    halted = true;
 }
 
 // LD (HL),A 
@@ -1641,7 +1641,7 @@ void CPU::opcode_0xE1()
     set_HL(stack_pop());
 }
 
-// LDH (C),A 
+// LD (C),A
 void CPU::opcode_0xE2()
 {
     memory_write(0xFF00 + state.c, state.a);
@@ -1737,10 +1737,10 @@ void CPU::opcode_0xF1()
     set_AF(stack_pop());
 }
 
-// Illegal instruction 
+// LD A,(C)
 void CPU::opcode_0xF2()
 {
-    hanging = true;
+    state.a = memory_read(0xFF00 + state.c);
 }
 
 // DI 

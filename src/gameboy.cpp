@@ -38,7 +38,19 @@ void GameBoy::run()
 
         cycles = 0;
         while (cycles < clocks_per_period) {
-            instr_cycles = cpu.execute_instruction();
+            if (! cpu.is_halted() && ! cpu.is_stopped() && ! cpu.procedure_done()) {
+                instr_cycles = cpu.execute_instruction();
+                cycles += instr_cycles;
+                interrupt_counter += instr_cycles;
+
+                for (uint8_t i = 0; i < instr_cycles; ++i)
+                    clock.clock();
+            } else {
+                // We still need to run the clock, even if the CPU is halted/stopped
+                // or the current music procedure is done
+                clock.clock();
+                ++cycles;
+            }
 
             if (cpu.is_hanging()) {
                 std::cout << "CPU is hanging. Quitting...\n";
@@ -46,18 +58,13 @@ void GameBoy::run()
                 break;
             }
 
-            cycles += instr_cycles;
-            interrupt_counter += instr_cycles;
-
-            for (uint8_t i = 0; i < instr_cycles; ++i)
-                clock.clock();
-
-            if (cpu.procedure_done()) {
-                if (! init_done || interrupt_counter >= interrupt_rate) {
-                    init_done = true;
-                    interrupt_counter = 0;
-                    cpu.gbs_play(gbs_content.play_addr);
-                }
+            // Run the play procedure at the end of INIT or at interrupt
+            if ((cpu.procedure_done() && ! init_done) ||
+                    (init_done && interrupt_counter >= interrupt_rate)) {
+                std::cout << "PLAY!\n";
+                init_done = true;
+                interrupt_counter = 0;
+                cpu.gbs_play(gbs_content.play_addr);
             }
         }
 

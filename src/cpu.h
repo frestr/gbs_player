@@ -34,6 +34,8 @@ public:
     uint32_t get_interrupt_rate();
 
     bool is_hanging();
+    bool is_halted();
+    bool is_stopped();
 
 private:
     APU& apu;
@@ -75,6 +77,8 @@ private:
 
     bool branch_taken;
     bool hanging;
+    bool halted;
+    bool stopped;
 
     void reset_state();
     void reset_flags();
