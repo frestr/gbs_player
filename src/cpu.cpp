@@ -524,12 +524,12 @@ void CPU::call(uint8_t addr_high, uint8_t addr_low, bool condition)
 
 void CPU::rst(uint8_t offset)
 {
-    stack_push(state.pc);
+    stack_push(state.pc + 1);
     // In a normal GBZ80 implementation, addr would be equal to offset
     // (i.e. 0x0000 + offset), but because we are implementing a gbs player,
     // we have to add it to the load_addr instead
     uint16_t addr = load_addr + offset;
-    jump((addr >> 8) & 0xFF, addr & 0xFF);
+    jump(addr, true);
 }
 
 void CPU::rlc(uint8_t& reg)

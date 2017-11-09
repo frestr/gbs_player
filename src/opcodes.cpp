@@ -239,7 +239,24 @@ void CPU::opcode_0x26()
 // DAA 
 void CPU::opcode_0x27()
 {
+    uint16_t new_a = static_cast<uint16_t>(state.a);
+    if (! state.f.n) {
+        if (state.f.h || ((new_a & 0xF) > 9))
+            new_a += 0x06;
+        if (state.f.c || (new_a > 0x9F))
+            new_a += 0x60;
+    } else {
+        if (state.f.h)
+            new_a = (new_a - 6) & 0xFF;
+        if (state.f.c)
+            new_a -= 0x60;
+    }
 
+    state.f.z = (new_a == 0);
+    state.f.h = 0;
+    state.c = ((new_a & 0x100) == 0x100);
+
+    state.a = new_a & 0xFF;
 }
 
 // JR Z,n 
