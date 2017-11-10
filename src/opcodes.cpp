@@ -10,7 +10,9 @@ void CPU::opcode_0x00()
 // LD BC,nn 
 void CPU::opcode_0x01()
 {
-    set_BC(pc_peek(2), pc_peek(1));
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    set_BC(high, low);
 }
 
 // LD (BC),A 
@@ -40,7 +42,7 @@ void CPU::opcode_0x05()
 // LD B,n 
 void CPU::opcode_0x06()
 {
-    state.b = pc_peek(1);
+    state.b = pc_read();
 }
 
 // RLCA 
@@ -52,7 +54,9 @@ void CPU::opcode_0x07()
 // LD (nn),SP 
 void CPU::opcode_0x08()
 {
-    memory_write((pc_peek(2) << 8) | pc_peek(1), state.sp);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    memory_write((high << 8) | low, state.sp);
 }
 
 // ADD HL,BC 
@@ -88,7 +92,7 @@ void CPU::opcode_0x0D()
 // LD C,n 
 void CPU::opcode_0x0E()
 {
-    state.c = pc_peek(1);
+    state.c = pc_read();
 }
 
 // RRCA
@@ -106,7 +110,9 @@ void CPU::opcode_0x10()
 // LD DE,nn 
 void CPU::opcode_0x11()
 {
-    set_DE(pc_peek(2), pc_peek(1));
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    set_DE(high, low);
 }
 
 // LD (DE),A 
@@ -136,7 +142,7 @@ void CPU::opcode_0x15()
 // LD D,n 
 void CPU::opcode_0x16()
 {
-    state.d = pc_peek(1);
+    state.d = pc_read();
 }
 
 // RLA 
@@ -148,7 +154,8 @@ void CPU::opcode_0x17()
 // JR n 
 void CPU::opcode_0x18()
 {
-    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), true);
+    uint8_t offset = pc_read();
+    jump(state.pc + static_cast<int8_t>(offset), true);
 }
 
 // ADD HL,DE 
@@ -184,7 +191,7 @@ void CPU::opcode_0x1D()
 // LD E,n 
 void CPU::opcode_0x1E()
 {
-    state.e = pc_peek(1);
+    state.e = pc_read();
 }
 
 // RRA
@@ -196,13 +203,16 @@ void CPU::opcode_0x1F()
 // JR NZ,n 
 void CPU::opcode_0x20()
 {
-    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), ! state.f.z);
+    uint8_t offset = pc_read();
+    jump(state.pc + static_cast<int8_t>(offset), ! state.f.z);
 }
 
 // LD HL,nn 
 void CPU::opcode_0x21()
 {
-    set_HL(pc_peek(2), pc_peek(1));
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    set_HL(high, low);
 }
 
 // LDI (HL),A 
@@ -233,7 +243,7 @@ void CPU::opcode_0x25()
 // LD H,n 
 void CPU::opcode_0x26()
 {
-    state.h = pc_peek(1);
+    state.h = pc_read();
 }
 
 // DAA 
@@ -262,7 +272,8 @@ void CPU::opcode_0x27()
 // JR Z,n 
 void CPU::opcode_0x28()
 {
-    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), state.f.z);
+    uint8_t offset = pc_read();
+    jump(state.pc + static_cast<int8_t>(offset), state.f.z);
 }
 
 // ADD HL,HL 
@@ -299,7 +310,7 @@ void CPU::opcode_0x2D()
 // LD L,n 
 void CPU::opcode_0x2E()
 {
-    state.l = pc_peek(1);
+    state.l = pc_read();
 }
 
 // CPL
@@ -313,13 +324,16 @@ void CPU::opcode_0x2F()
 // JR NC,n 
 void CPU::opcode_0x30()
 {
-    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), ! state.f.c);
+    uint8_t offset = pc_read();
+    jump(state.pc + static_cast<int8_t>(offset), ! state.f.c);
 }
 
 // LD SP,nn 
 void CPU::opcode_0x31()
 {
-    state.sp = (pc_peek(2) << 8) | pc_peek(1);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    state.sp = (high << 8) | low;
 }
 
 // LDD (HL),A 
@@ -350,7 +364,7 @@ void CPU::opcode_0x35()
 // LD (HL),n 
 void CPU::opcode_0x36()
 {
-    memory_write(get_HL(), pc_peek(1));
+    memory_write(get_HL(), pc_read());
 }
 
 // SCF 
@@ -364,7 +378,8 @@ void CPU::opcode_0x37()
 // JR C,n 
 void CPU::opcode_0x38()
 {
-    jump(state.pc + 1 + static_cast<int8_t>(pc_peek(1)), state.f.c);
+    uint8_t offset = pc_read();
+    jump(state.pc + static_cast<int8_t>(offset), state.f.c);
 }
 
 // ADD HL,SP 
@@ -401,7 +416,7 @@ void CPU::opcode_0x3D()
 // LD A,n 
 void CPU::opcode_0x3E()
 {
-    state.a = pc_peek(1);
+    state.a = pc_read();
 }
 
 // CCF
@@ -1183,7 +1198,7 @@ void CPU::opcode_0xBF()
 // RET NZ 
 void CPU::opcode_0xC0()
 {
-    jump(stack_pop(), ! state.f.z);
+    ret(! state.f.z);
 }
 
 // POP BC 
@@ -1195,19 +1210,25 @@ void CPU::opcode_0xC1()
 // JP NZ,nn 
 void CPU::opcode_0xC2()
 {
-    jump(pc_peek(2), pc_peek(1), ! state.f.z);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    jump(high, low, ! state.f.z);
 }
 
 // JP nn 
 void CPU::opcode_0xC3()
 {
-    jump(pc_peek(2), pc_peek(1));
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    jump(high, low, true);
 }
 
 // CALL NZ,nn 
 void CPU::opcode_0xC4()
 {
-    call(pc_peek(2), pc_peek(1), ! state.f.z);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    call(high, low, ! state.f.z);
 }
 
 // PUSH BC 
@@ -1219,7 +1240,7 @@ void CPU::opcode_0xC5()
 // ADD A,n 
 void CPU::opcode_0xC6()
 {
-    add_a(pc_peek(1));
+    add_a(pc_read());
 }
 
 // RST 0 
@@ -1231,26 +1252,28 @@ void CPU::opcode_0xC7()
 // RET Z 
 void CPU::opcode_0xC8()
 {
-    jump(stack_pop(), state.f.z);
+    ret(state.f.z);
 }
 
 // RET 
 void CPU::opcode_0xC9()
 {
-    jump(stack_pop(), true);
+    ret(true);
 }
 
 // JP Z,nn 
 void CPU::opcode_0xCA()
 {
-    jump(pc_peek(2), pc_peek(1), state.f.z);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    jump(high, low, state.f.z);
 }
 
 // Ext ops 
 void CPU::opcode_0xCB()
 {
     uint8_t val;
-    switch(pc_peek(1)) {
+    switch(pc_read()) {
         case 0x00: rlc(state.b); break;
         case 0x01: rlc(state.c); break;
         case 0x02: rlc(state.d); break;
@@ -1528,19 +1551,23 @@ void CPU::opcode_0xCB()
 // CALL Z,nn 
 void CPU::opcode_0xCC()
 {
-    call(pc_peek(2), pc_peek(1), state.f.z);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    call(high, low, state.f.z);
 }
 
 // CALL nn 
 void CPU::opcode_0xCD()
 {
-    call(pc_peek(2), pc_peek(1), true);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    call(high, low, true);
 }
 
 // ADC A,n 
 void CPU::opcode_0xCE()
 {
-    adc_a(pc_peek(1));
+    adc_a(pc_read());
 }
 
 // RST 8
@@ -1552,7 +1579,7 @@ void CPU::opcode_0xCF()
 // RET NC 
 void CPU::opcode_0xD0()
 {
-    jump(stack_pop(), ! state.f.c);
+    ret(! state.f.c);
 }
 
 // POP DE 
@@ -1564,7 +1591,9 @@ void CPU::opcode_0xD1()
 // JP NC,nn 
 void CPU::opcode_0xD2()
 {
-    jump(pc_peek(2), pc_peek(1), ! state.f.c);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    jump(high, low, ! state.f.c);
 }
 
 // Illegal instruction 
@@ -1576,7 +1605,9 @@ void CPU::opcode_0xD3()
 // CALL NC,nn 
 void CPU::opcode_0xD4()
 {
-    call(pc_peek(2), pc_peek(1), ! state.f.c);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    call(high, low, ! state.f.c);
 }
 
 // PUSH DE 
@@ -1588,7 +1619,7 @@ void CPU::opcode_0xD5()
 // SUB A,n 
 void CPU::opcode_0xD6()
 {
-    sub_a(pc_peek(1));
+    sub_a(pc_read());
 }
 
 // RST 10 
@@ -1600,20 +1631,22 @@ void CPU::opcode_0xD7()
 // RET C 
 void CPU::opcode_0xD8()
 {
-    jump(stack_pop(), state.f.c);
+    ret(state.f.c);
 }
 
 // RETI 
 void CPU::opcode_0xD9()
 {
-    jump(stack_pop(), true);
+    ret(true);
     state.interrupts_enabled = true;
 }
 
 // JP C,nn 
 void CPU::opcode_0xDA()
 {
-    jump(pc_peek(2), pc_peek(1), state.f.c);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    jump(high, low, state.f.c);
 }
 
 // Illegal instruction 
@@ -1625,7 +1658,9 @@ void CPU::opcode_0xDB()
 // CALL C,nn 
 void CPU::opcode_0xDC()
 {
-    call(pc_peek(2), pc_peek(1), state.f.c);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    call(high, low, state.f.c);
 }
 
 // Illegal instruction 
@@ -1637,7 +1672,7 @@ void CPU::opcode_0xDD()
 // SBC A,n 
 void CPU::opcode_0xDE()
 {
-    sbc_a(pc_peek(1));
+    sbc_a(pc_read());
 }
 
 // RST 18
@@ -1649,7 +1684,7 @@ void CPU::opcode_0xDF()
 // LDH (n),A 
 void CPU::opcode_0xE0()
 {
-    memory_write(0xFF00 + pc_peek(1), state.a);
+    memory_write(0xFF00 + pc_read(), state.a);
 }
 
 // POP HL 
@@ -1685,7 +1720,7 @@ void CPU::opcode_0xE5()
 // AND n 
 void CPU::opcode_0xE6()
 {
-    and_a(pc_peek(1));
+    and_a(pc_read());
 }
 
 // RST 20 
@@ -1697,7 +1732,7 @@ void CPU::opcode_0xE7()
 // ADD SP,d 
 void CPU::opcode_0xE8()
 {
-    state.sp = add_sp(pc_peek(1));
+    state.sp = add_sp(static_cast<int8_t>(pc_read()));
 }
 
 // JP (HL) 
@@ -1709,7 +1744,9 @@ void CPU::opcode_0xE9()
 // LD (nn),A 
 void CPU::opcode_0xEA()
 {
-    memory_write((pc_peek(2) << 8) | pc_peek(1), state.a);
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    memory_write((high << 8) | low, state.a);
 }
 
 // Illegal instruction 
@@ -1733,7 +1770,7 @@ void CPU::opcode_0xED()
 // XOR n 
 void CPU::opcode_0xEE()
 {
-    xor_a(pc_peek(1));
+    xor_a(pc_read());
 }
 
 // RST 28
@@ -1745,7 +1782,7 @@ void CPU::opcode_0xEF()
 // LDH A,(n) 
 void CPU::opcode_0xF0()
 {
-    state.a = memory_read(0xFF00 + pc_peek(1));
+    state.a = memory_read(0xFF00 + pc_read());
 }
 
 // POP AF 
@@ -1781,7 +1818,7 @@ void CPU::opcode_0xF5()
 // OR n 
 void CPU::opcode_0xF6()
 {
-    or_a(pc_peek(1));
+    or_a(pc_read());
 }
 
 // RST 30 
@@ -1793,7 +1830,7 @@ void CPU::opcode_0xF7()
 // LDHL SP,d 
 void CPU::opcode_0xF8()
 {
-    set_HL(add_sp(pc_peek(1)));
+    set_HL(add_sp(static_cast<int8_t>(pc_read())));
 }
 
 // LD SP,HL 
@@ -1805,7 +1842,9 @@ void CPU::opcode_0xF9()
 // LD A,(nn) 
 void CPU::opcode_0xFA()
 {
-    state.a = memory_read((pc_peek(2) << 8) | pc_peek(1));
+    uint8_t low = pc_read();
+    uint8_t high = pc_read();
+    state.a = memory_read((high << 8) | low);
 }
 
 // EI 
@@ -1829,7 +1868,7 @@ void CPU::opcode_0xFD()
 // CP n 
 void CPU::opcode_0xFE()
 {
-    cp_a(pc_peek(1));
+    cp_a(pc_read());
 }
 
 // RST 38

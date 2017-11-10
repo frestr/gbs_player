@@ -48,7 +48,7 @@ uint8_t Noise::get_divisor()
     return divisor;
 }
 
-void Noise::NRx0_write(uint8_t value)
+void Noise::NRx0_write(uint8_t /*value*/)
 {
     // not used
 }

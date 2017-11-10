@@ -47,6 +47,8 @@ void GBSReader::parse_file(std::vector<uint8_t>& buf)
     content.num_songs = buf[0x4];
     content.first_song = buf[0x5];
 
+    if (content.first_song < 1)
+        throw ParsingError("First song number < 1");
     if (content.first_song >= content.num_songs)
         throw ParsingError("First song number >= number of songs");
 

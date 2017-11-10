@@ -59,7 +59,7 @@ std::vector<int16_t> Mixer::pop_buffer()
     return vec;
 }
 
-void Mixer::clock(Timer* timer)
+void Mixer::clock(Timer* /*timer*/)
 {
     poll_channels();    
 }

@@ -94,7 +94,8 @@ private:
     void init_opcodes();
 
     // --- Opcode helpers ---
-    uint8_t pc_peek(uint8_t offset);
+    uint8_t pc_read();
+    void pc_increment();
 
     // Used to access registers pairs like one register
     // Important: the 16-bit value is big-endian here, which means that raw values
@@ -137,6 +138,7 @@ private:
     void jump(uint16_t addr, bool condition);
     void call(uint8_t addr_high, uint8_t addr_low, bool condition);
     void rst(uint8_t offset);
+    void ret(bool condition);
 
     void rlc(uint8_t& reg);
     void rrc(uint8_t& reg);

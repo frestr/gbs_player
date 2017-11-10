@@ -27,6 +27,10 @@ void GameBoy::run()
     bool running = true;
     bool init_done = false;
 
+#ifdef DEBUG
+    std::cout << "INIT\n";
+#endif
+
     uint32_t cycles;
     uint32_t instr_cycles;
     uint32_t interrupt_rate;
@@ -50,6 +54,7 @@ void GameBoy::run()
                 // or the current music procedure is done
                 clock.clock();
                 ++cycles;
+                ++interrupt_counter;
             }
 
             if (cpu.is_hanging()) {
@@ -61,7 +66,9 @@ void GameBoy::run()
             // Run the play procedure at the end of INIT or at interrupt
             if ((cpu.procedure_done() && ! init_done) ||
                     (init_done && interrupt_counter >= interrupt_rate)) {
+#ifdef DEBUG
                 std::cout << "PLAY!\n";
+#endif
                 init_done = true;
                 interrupt_counter = 0;
                 cpu.gbs_play(gbs_content.play_addr);

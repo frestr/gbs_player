@@ -36,7 +36,7 @@ uint16_t Square2::get_frequency()
     return freq;
 }
 
-void Square2::NRx0_write(uint8_t value)
+void Square2::NRx0_write(uint8_t /*value*/)
 {
     // Not used
 }

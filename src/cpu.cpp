@@ -4,6 +4,10 @@
 #include "cpu.h"
 #include "systemclock.h"
 
+#ifdef DEBUG
+#include "disassembler.h"
+#endif
+
 CPU::CPU(APU& apu)
     : apu(apu),
       load_addr(0),
@@ -120,7 +124,7 @@ void CPU::gbs_init(uint16_t init_addr, uint8_t song_num, uint16_t stack_pointer,
     reset_flags();
     clear_ram();
 
-    state.a = song_num;
+    state.a = song_num - 1;
     state.sp = stack_pointer;
     sp_start = stack_pointer;
     state.pc = init_addr;
@@ -144,22 +148,22 @@ void CPU::gbs_play(uint16_t play_addr)
 
 uint8_t CPU::execute_instruction()
 {
-    uint8_t opcode = state.memory[state.pc];
+    uint8_t opcode = pc_read();
 
     branch_taken = false;
 
-    (this->*opcodes[opcode])();
+#ifdef DEBUG
+    bool ret_reached;
+    disassemble(state.memory.data(), state.pc - 1, &ret_reached, 0);
+#endif
 
-    uint8_t pc_delta = opcode_lengths[opcode];
+    (this->*opcodes[opcode])();
 
     uint8_t cycles = opcode_cycles[opcode];
     if (opcode == 0xCB)
-        cycles = opcode_cycles_extended[pc_peek(1)];
+        cycles = opcode_cycles_extended[memory_read(state.pc - 1)];
     else if (branch_taken)
         cycles = opcode_cycles_branch[opcode];
-
-    if (! branch_taken)
-        state.pc += pc_delta;
 
     return cycles;
 }
@@ -313,9 +317,16 @@ uint8_t CPU::memory_read(uint16_t addr)
     return state.memory[addr];
 }
 
-uint8_t CPU::pc_peek(uint8_t offset)
+uint8_t CPU::pc_read()
 {
-    return memory_read(state.pc + offset);
+    uint8_t val = memory_read(state.pc);
+    pc_increment();
+    return val;
+}
+
+void CPU::pc_increment()
+{
+    ++state.pc;
 }
 
 void CPU::set_AF(uint16_t value)
@@ -515,21 +526,26 @@ void CPU::jump(uint16_t addr, bool condition)
 void CPU::call(uint8_t addr_high, uint8_t addr_low, bool condition)
 {
     if (condition) {
-        // push the address of the next instruction. +3 because call
-        // instructions always have length 3
-        stack_push(state.pc + 3);
+        // push the address of the next instruction
+        stack_push(state.pc);
     }
     jump(addr_high, addr_low, condition);
 }
 
 void CPU::rst(uint8_t offset)
 {
-    stack_push(state.pc + 1);
+    stack_push(state.pc);
     // In a normal GBZ80 implementation, addr would be equal to offset
     // (i.e. 0x0000 + offset), but because we are implementing a gbs player,
     // we have to add it to the load_addr instead
     uint16_t addr = load_addr + offset;
     jump(addr, true);
+}
+
+void CPU::ret(bool condition)
+{
+    if (condition)
+        jump(stack_pop(), true);
 }
 
 void CPU::rlc(uint8_t& reg)
