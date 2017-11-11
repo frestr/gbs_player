@@ -27,9 +27,31 @@ void GameBoy::run()
     bool running = true;
     bool init_done = false;
 
-#ifdef DEBUG
-    std::cout << "INIT\n";
-#endif
+    bool testing = false;
+    /* cpu.load_test_rom("instr_tests/01-special.gb");               // PASSED */
+    /* cpu.load_test_rom("instr_tests/02-interrupts.gb"); */
+    /* cpu.load_test_rom("instr_tests/03-op sp,hl.gb");              // PASSED */
+    /* cpu.load_test_rom("instr_tests/04-op r,imm.gb");              // PASSED */
+    /* cpu.load_test_rom("instr_tests/05-op rp.gb");                 // PASSED */
+    /* cpu.load_test_rom("instr_tests/06-ld r,r.gb");                // PASSED */
+    /* cpu.load_test_rom("instr_tests/07-jr,jp,call,ret,rst.gb");    // PASSED */
+    /* cpu.load_test_rom("instr_tests/08-misc instrs.gb");           // PASSED */
+    /* cpu.load_test_rom("instr_tests/09-op r,r.gb");                // PASSED */
+    /* cpu.load_test_rom("instr_tests/10-bit ops.gb");               // PASSED */
+    /* cpu.load_test_rom("instr_tests/11-op a,(hl).gb");             // PASSED */
+
+    /* cpu.load_test_rom("sound_tests/01-registers.gb"); */
+    /* cpu.load_test_rom("sound_tests/02-len ctr.gb"); */
+    /* cpu.load_test_rom("sound_tests/03-trigger.gb"); */
+    /* cpu.load_test_rom("sound_tests/04-sweep.gb"); */
+    /* cpu.load_test_rom("sound_tests/05-sweep details.gb"); */
+    /* cpu.load_test_rom("sound_tests/06-overflow on trigger.gb"); */
+    /* cpu.load_test_rom("sound_tests/07-len sweep period sync.gb"); */
+    /* cpu.load_test_rom("sound_tests/08-len ctr during power.gb"); */
+    /* cpu.load_test_rom("sound_tests/09-wave read while on.gb"); */
+    /* cpu.load_test_rom("sound_tests/10-wave trigger while on.gb"); */
+    /* cpu.load_test_rom("sound_tests/11-regs after power.gb"); */
+    /* cpu.load_test_rom("sound_tests/12-wave write while on.gb"); */
 
     uint32_t cycles;
     uint32_t instr_cycles;
@@ -42,7 +64,7 @@ void GameBoy::run()
 
         cycles = 0;
         while (cycles < clocks_per_period) {
-            if (! cpu.is_halted() && ! cpu.is_stopped() && ! cpu.procedure_done()) {
+            if (! cpu.is_halted() && ! cpu.is_stopped() && (testing || ! cpu.procedure_done())) {
                 instr_cycles = cpu.execute_instruction();
                 cycles += instr_cycles;
                 interrupt_counter += instr_cycles;
@@ -64,18 +86,17 @@ void GameBoy::run()
             }
 
             // Run the play procedure at the end of INIT or at interrupt
-            if ((cpu.procedure_done() && ! init_done) ||
-                    (init_done && interrupt_counter >= interrupt_rate)) {
-#ifdef DEBUG
-                std::cout << "PLAY!\n";
-#endif
-                init_done = true;
-                interrupt_counter = 0;
-                cpu.gbs_play(gbs_content.play_addr);
+            if (! testing) {
+                if ((cpu.procedure_done() && ! init_done) ||
+                        (init_done && interrupt_counter >= interrupt_rate)) {
+                    init_done = true;
+                    interrupt_counter = 0;
+                    cpu.gbs_play(gbs_content.play_addr);
+                }
             }
         }
 
-        if (player != NULL)
+        if (! testing && player != NULL)
             player->play();
 
         std::this_thread::sleep_until(start + period_duration);

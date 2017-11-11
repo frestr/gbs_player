@@ -20,6 +20,10 @@ public:
                   uint8_t timer_modulo, uint8_t timer_control);
     void gbs_play(uint16_t play_addr);
 
+    // Used for loading testing roms. Shouldn't really be here, should
+    // rather make a new class for loading non-gbs-ROMs
+    void load_test_rom(std::string filename);
+
     // Executes the code in memory, pointed to by pc
     // Returns the amount of cycles used to execute the instruction
     uint8_t execute_instruction();
@@ -95,7 +99,6 @@ private:
 
     // --- Opcode helpers ---
     uint8_t pc_read();
-    void pc_increment();
 
     // Used to access registers pairs like one register
     // Important: the 16-bit value is big-endian here, which means that raw values
@@ -140,10 +143,10 @@ private:
     void rst(uint8_t offset);
     void ret(bool condition);
 
-    void rlc(uint8_t& reg);
-    void rrc(uint8_t& reg);
-    void rl(uint8_t& reg);
-    void rr(uint8_t& reg);
+    void rlc(uint8_t& reg, bool is_reg_a = false);
+    void rrc(uint8_t& reg, bool is_reg_a = false);
+    void rl(uint8_t& reg, bool is_reg_a = false);
+    void rr(uint8_t& reg, bool is_reg_a = false);
     void sla(uint8_t& reg);
     void sra(uint8_t& reg);
     void swap(uint8_t& reg);

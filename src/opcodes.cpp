@@ -48,7 +48,7 @@ void CPU::opcode_0x06()
 // RLCA 
 void CPU::opcode_0x07()
 {
-    rlc(state.a);
+    rlc(state.a, true);
 }
 
 // LD (nn),SP 
@@ -56,7 +56,8 @@ void CPU::opcode_0x08()
 {
     uint8_t low = pc_read();
     uint8_t high = pc_read();
-    memory_write((high << 8) | low, state.sp);
+    memory_write((high << 8) | low, state.sp & 0xFF);
+    memory_write(((high << 8) | low) + 1, (state.sp >> 8) & 0xFF);
 }
 
 // ADD HL,BC 
@@ -98,12 +99,13 @@ void CPU::opcode_0x0E()
 // RRCA
 void CPU::opcode_0x0F()
 {
-    rrc(state.a);
+    rrc(state.a, true);
 }
 
 // STOP 
 void CPU::opcode_0x10()
 {
+    pc_read();
     stopped = true;
 }
 
@@ -136,7 +138,7 @@ void CPU::opcode_0x14()
 // DEC D 
 void CPU::opcode_0x15()
 {
-    dec(state.b);
+    dec(state.d);
 }
 
 // LD D,n 
@@ -148,7 +150,7 @@ void CPU::opcode_0x16()
 // RLA 
 void CPU::opcode_0x17()
 {
-    rl(state.a);
+    rl(state.a, true);
 }
 
 // JR n 
@@ -197,7 +199,7 @@ void CPU::opcode_0x1E()
 // RRA
 void CPU::opcode_0x1F()
 {
-    rr(state.a);
+    rr(state.a, true);
 }
 
 // JR NZ,n 
@@ -249,24 +251,24 @@ void CPU::opcode_0x26()
 // DAA 
 void CPU::opcode_0x27()
 {
-    uint16_t new_a = static_cast<uint16_t>(state.a);
+    int16_t new_a = static_cast<int16_t>(state.a);
     if (! state.f.n) {
-        if (state.f.h || ((new_a & 0xF) > 9))
-            new_a += 0x06;
-        if (state.f.c || (new_a > 0x9F))
+        if (state.f.c || (new_a > 0x99)) {
             new_a += 0x60;
+            state.f.c = 1;
+        }
+        if (state.f.h || ((new_a & 0xF) > 0x9))
+            new_a += 0x6;
     } else {
-        if (state.f.h)
-            new_a = (new_a - 6) & 0xFF;
         if (state.f.c)
             new_a -= 0x60;
+        if (state.f.h)
+            new_a -= 0x6;
     }
 
-    state.f.z = (new_a == 0);
     state.f.h = 0;
-    state.c = ((new_a & 0x100) == 0x100);
-
-    state.a = new_a & 0xFF;
+    state.a = static_cast<uint8_t>(new_a);
+    state.f.z = (state.a == 0);
 }
 
 // JR Z,n 
@@ -352,13 +354,17 @@ void CPU::opcode_0x33()
 // INC (HL) 
 void CPU::opcode_0x34()
 {
-    memory_write(get_HL(), inc(memory_read(get_HL())));
+    uint8_t val = memory_read(get_HL());
+    inc(val);
+    memory_write(get_HL(), val);
 }
 
 // DEC (HL) 
 void CPU::opcode_0x35()
 {
-    memory_write(get_HL(), dec(memory_read(get_HL())));
+    uint8_t val = memory_read(get_HL());
+    dec(val);
+    memory_write(get_HL(), val);
 }
 
 // LD (HL),n 
@@ -526,13 +532,13 @@ void CPU::opcode_0x4F()
 // LD D,B 
 void CPU::opcode_0x50()
 {
-    state.c = state.b;
+    state.d = state.b;
 }
 
 // LD D,C 
 void CPU::opcode_0x51()
 {
-    state.c = state.c;
+    state.d = state.c;
 }
 
 // LD D,D 

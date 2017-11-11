@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <fstream>
 #include "cpu.h"
 #include "systemclock.h"
 
@@ -146,6 +147,31 @@ void CPU::gbs_play(uint16_t play_addr)
     halted = false;
 }
 
+void CPU::load_test_rom(std::string filename)
+{
+    std::ifstream file(filename, std::ios::binary);
+
+    if (! file.is_open())
+        throw std::runtime_error("Unable to open test rom");
+
+    // Don't skip whitespace
+    file.unsetf(std::ios::skipws);
+
+    // Get file size
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // Load file content into buffer
+    std::vector<uint8_t> file_buf(size);
+    file_buf.insert(file_buf.begin(),
+                    std::istream_iterator<uint8_t>(file),
+                    std::istream_iterator<uint8_t>());
+
+    gbs_load(0, file_buf);
+
+    file.close();
+}
+
 uint8_t CPU::execute_instruction()
 {
     uint8_t opcode = pc_read();
@@ -254,6 +280,10 @@ void CPU::clear_memory()
 
 void CPU::memory_write(uint16_t addr, uint8_t value)
 {
+    // Prints out data sent to serial link. For testing
+    if (addr == 0xFF02 && value == 0x81)
+        std::cout << memory_read(0xFF01);
+
     // Temp
     if (addr >= 0xFF10 && addr <= 0xFF3F)
         apu.register_write(addr, value);
@@ -320,13 +350,8 @@ uint8_t CPU::memory_read(uint16_t addr)
 uint8_t CPU::pc_read()
 {
     uint8_t val = memory_read(state.pc);
-    pc_increment();
-    return val;
-}
-
-void CPU::pc_increment()
-{
     ++state.pc;
+    return val;
 }
 
 void CPU::set_AF(uint16_t value)
@@ -457,22 +482,38 @@ void CPU::add_a(uint8_t value)
 
 void CPU::sub_a(uint8_t value)
 {
-    uint8_t old_a = state.a;
-    state.a -= value;
-    state.f.z = (state.a == 0);
+    int16_t result = state.a - value;
+
+    state.f.z = (static_cast<uint8_t>(result) == 0);
     state.f.n = 1;
-    state.f.h = ((old_a & 0xF) - (value & 0xF) <= 0xF);
-    state.f.c = (state.a <= old_a);
+    state.f.h = ((state.a & 0xF) - (value & 0xF) < 0);
+    state.f.c = (result < 0);
+
+    state.a = static_cast<uint8_t>(result);
 }
 
 void CPU::adc_a(uint8_t value)
 {
-    add_a(value + state.f.c);
+    uint16_t result = state.a + value + state.f.c;
+
+    state.f.z = (static_cast<uint8_t>(result) == 0);
+    state.f.n = 0;
+    state.f.h = ((state.a & 0xF) + (value & 0xF) + state.f.c > 0xF);
+    state.f.c = (result > 0xFF);
+
+    state.a = static_cast<uint8_t>(result);
 }
 
 void CPU::sbc_a(uint8_t value)
 {
-    sub_a(value - state.f.c);
+    int16_t result = state.a - value - state.f.c;
+
+    state.f.z = (static_cast<uint8_t>(result) == 0);
+    state.f.n = 1;
+    state.f.h = ((state.a & 0xF) - (value & 0xF) - state.f.c < 0);
+    state.f.c = (result < 0);
+
+    state.a = static_cast<uint8_t>(result);
 }
 
 void CPU::cp_a(uint8_t value)
@@ -498,14 +539,14 @@ void CPU::add_hl(uint16_t value)
 uint16_t CPU::add_sp(int8_t value)
 {
     uint16_t old_sp = state.sp;
-    int32_t result = static_cast<int32_t>(old_sp) + value;
+    uint16_t result = old_sp + value;
 
     state.f.z = 0;
     state.f.n = 0;
-    state.f.h = (((old_sp ^ value ^ (result & 0xFFFF)) & 0x10) == 0x10);
-    state.f.c = (((old_sp ^ value ^ (result & 0xFFFF)) & 0x100) == 0x100);
+    state.f.h = (((old_sp ^ value ^ result) & 0x10) == 0x10);
+    state.f.c = (((old_sp ^ value ^ result) & 0x100) == 0x100);
 
-    return static_cast<uint16_t>(result);
+    return result;
 }
 
 void CPU::jump(uint8_t addr_high, uint8_t addr_low, bool condition)
@@ -528,8 +569,10 @@ void CPU::call(uint8_t addr_high, uint8_t addr_low, bool condition)
     if (condition) {
         // push the address of the next instruction
         stack_push(state.pc);
+        jump(addr_high, addr_low, true);
+    } else {
+        branch_taken = false;
     }
-    jump(addr_high, addr_low, condition);
 }
 
 void CPU::rst(uint8_t offset)
@@ -546,53 +589,67 @@ void CPU::ret(bool condition)
 {
     if (condition)
         jump(stack_pop(), true);
+    else
+        branch_taken = false;
 }
 
-void CPU::rlc(uint8_t& reg)
+void CPU::rlc(uint8_t& reg, bool is_reg_a)
 {
-    state.f.c = ((reg & 0x80) == 1);
+    state.f.c = ((reg & 0x80) != 0);
     reg <<= 1;
     reg |= state.f.c;
-    state.f.z = (reg == 0);
+    if (! is_reg_a)
+        state.f.z = (reg == 0);
+    else
+        state.f.z = 0;
     state.f.n = 0;
     state.f.h = 0;
 }
 
-void CPU::rrc(uint8_t& reg)
+void CPU::rrc(uint8_t& reg, bool is_reg_a)
 {
-    state.f.c = ((reg & 1) == 1);
+    state.f.c = ((reg & 1) != 0);
     reg >>= 1;
     reg |= state.f.c << 7;
-    state.f.z = (reg == 0);
+    if (! is_reg_a)
+        state.f.z = (reg == 0);
+    else
+        state.f.z = 0;
     state.f.n = 0;
     state.f.h = 0;
 }
 
-void CPU::rl(uint8_t& reg)
+void CPU::rl(uint8_t& reg, bool is_reg_a)
 {
     uint8_t old_carry = state.f.c;
-    state.f.c = ((reg & 0x80) == 1);
+    state.f.c = ((reg & 0x80) != 0);
     reg <<= 1;
     reg |= old_carry;
-    state.f.z = (reg == 0);
+    if (! is_reg_a)
+        state.f.z = (reg == 0);
+    else
+        state.f.z = 0;
     state.f.n = 0;
     state.f.h = 0;
 }
 
-void CPU::rr(uint8_t& reg)
+void CPU::rr(uint8_t& reg, bool is_reg_a)
 {
     uint8_t old_carry = state.f.c;
-    state.f.c = ((reg & 1) == 1);
+    state.f.c = ((reg & 1) != 0);
     reg >>= 1;
     reg |= (old_carry << 7);
-    state.f.z = (reg == 0);
+    if (! is_reg_a)
+        state.f.z = (reg == 0);
+    else
+        state.f.z = 0;
     state.f.n = 0;
     state.f.h = 0;
 }
 
 void CPU::sla(uint8_t& reg)
 {
-    state.f.c = ((reg & 0x80) == 1);
+    state.f.c = ((reg & 0x80) != 0);
     reg <<= 1;
     state.f.z = (reg == 0);
     state.f.n = 0;
@@ -602,7 +659,7 @@ void CPU::sla(uint8_t& reg)
 void CPU::sra(uint8_t& reg)
 {
     uint8_t old_b7 = reg & 0x80;
-    state.f.c = ((reg & 1) == 1);
+    state.f.c = ((reg & 1) != 0);
     reg >>= 1;
     reg |= old_b7;
     state.f.z = (reg == 0);
@@ -621,7 +678,7 @@ void CPU::swap(uint8_t& reg)
 
 void CPU::srl(uint8_t& reg)
 {
-    state.f.c = ((reg & 1) == 1);
+    state.f.c = ((reg & 1) != 0);
     reg >>= 1;
     state.f.z = (reg == 0);
     state.f.n = 0;
@@ -647,30 +704,28 @@ void CPU::set(uint8_t bit, uint8_t& reg)
 
 void CPU::inc(uint8_t& reg)
 {
-    uint8_t old_reg = reg;
     ++reg;
     state.f.z = (reg == 0);
     state.f.n = 0;
-    state.f.h = (((old_reg & 0x8) == 1) && ((reg & 0x8) == 0));
+    state.f.h = ((reg & 0xF) == 0);
 }
 
 void CPU::dec(uint8_t& reg)
 {
-    uint8_t old_reg = reg;
     --reg;
     state.f.z = (reg == 0);
     state.f.n = 1;
-    state.f.h = (((old_reg ^ reg) & 0x10) == 0);
+    state.f.h = ((reg & 0xF) == 0xF);
 }
 
 uint16_t CPU::inc(uint16_t val)
 {
-    return ++val;
+    return val + 1;
 }
 
 uint16_t CPU::dec(uint16_t val)
 {
-    return --val;
+    return val - 1;
 }
 
 void CPU::init_opcodes()
