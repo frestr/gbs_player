@@ -19,27 +19,7 @@ CPU::CPU(APU& apu)
       stopped(false)
 {
     // Calculated from this sheet: http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-    // We assume that invalid opcodes have length 1 (doesn't really matter)
-    opcode_lengths = {
-        1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
-        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-        2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 2, 3, 3, 2, 1,
-        1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1,
-        2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
-        2, 1, 2, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
-    };
-
-    // Assume that invalid opcodes use 4 cycles
+    // We assume that invalid opcodes use 4 cycles (doesn't really matter)
     opcode_cycles = {
          4, 12,  8,  8,  4,  4,  8,  4, 20,  8,  8,  8,  4,  4,  8,  4,
          4, 12,  8,  8,  4,  4,  8,  4, 12,  8,  8,  8,  4,  4,  8,  4,
@@ -278,64 +258,64 @@ void CPU::clear_memory()
     state.memory.fill(0);    
 }
 
+void CPU::rom_bank_switch(uint8_t bank_num)
+{
+    if (bank_num == 0)
+        bank_num = 1;
+
+    uint32_t page_offset;
+    if (load_addr < 0x4000) {
+        page_offset = (0x4000 - load_addr) + 0x4000 * (bank_num - 1);
+    } else {
+        if (bank_num == 1)
+            page_offset = 0;
+        else
+            page_offset = (0x8000 - load_addr) + 0x4000 * (bank_num - 2);
+    }
+
+    assert(page_offset < rom_file.size());
+
+    uint32_t curr_index;
+    for (uint16_t i = 0; i < 0x4000; ++i) {
+        curr_index = page_offset + i;
+        if (curr_index >= rom_file.size())
+            state.memory[0x4000+i] = 0;
+        else
+            state.memory[0x4000+i] = rom_file[curr_index];
+    }
+}
+
 void CPU::memory_write(uint16_t addr, uint8_t value)
 {
     // Prints out data sent to serial link. For testing
     if (addr == 0xFF02 && value == 0x81)
         std::cout << memory_read(0xFF01);
 
-    // Temp
-    if (addr >= 0xFF10 && addr <= 0xFF3F)
-        apu.register_write(addr, value);
-    else
+    // As we are just implementing a gbs player, we ignore writes to
+    // VRAM, RAM bank switching, OAM, some I/O & interrupts
+    if (addr >= 0x2000 && addr < 0x4000) {
+        // ROM bank switch
+        // This selects the lower 5 bits (bank 0-31), while writes to
+        // 0x4000-0x5FFF selects the upper 2 bits, depending on the mode.
+        // No gbs file will use more than 31 banks in practice, so ignore
+        // that for now.
+        rom_bank_switch(value & 0x1F);
+    } else if (addr >= 0xA000 && addr < 0xE000) {
+        // Main RAM
         state.memory[addr] = value;
-    return;
-
-    // Note: some of these writes we can just ignore, while others
-    // should probably be written even though they will have no effect
-    // (like video RAM). So this method should be cleaned up a bit
-    if (addr < 0x4000) {
-        // ROM bank 0
-
-    } else if (addr < 0x8000) {
-        // ROM bank 1
-
-    } else if (addr < 0xA000) {
-        // Video RAM
-
-    } else if (addr < 0xC000) {
-        // External RAM
-        state.memory[addr] = value;
-    } else if (addr < 0xD000) {
-        // Work RAM bank 0
-        state.memory[addr] = value;
-    } else if (addr < 0xE000) {
-        // Work RAM bank 1
-        state.memory[addr] = value;
-    } else if (addr < 0xFE00) {
-        // Same as 0xC000-0xDDFF
-
-    } else if (addr < 0xFEA0) {
-        // Sprite attribute table (OAM)
-
-    } else if (addr < 0xFF00) {
-        // Not used
-
-    } else if (addr < 0xFF80) {
-        // IO ports
+    } else if (addr >= 0xFF00 && addr < 0xFF80) {
+        // I/O
         if (addr >= 0xFF10 && addr <= 0xFF3F) {
-            // APU
             apu.register_write(addr, value);
         } else {
+            // Even though we "ignore" other IO writes, we still write them
+            // to memory, as parts of the code may read the value later
+            // (e.g. the timer interrupt settings)
             state.memory[addr] = value;
         }
-    } else if (addr < 0xFFFE) {
-        // High RAM (stack)
-        state.memory[addr] = value;
-
-    } else if (addr == 0xFFFF) {
-        // Interrupt enable register
-        
+    } else if (addr >= 0xFF80 && addr < 0xFFFF) {
+        // HRAM
+        state.memory[addr] = value; 
     }
 }
 

@@ -46,7 +46,6 @@ private:
     std::vector<uint8_t> rom_file;
     uint16_t load_addr;
 
-    std::array<uint8_t, 256> opcode_lengths;
     std::array<uint8_t, 256> opcode_cycles;
     std::array<uint8_t, 256> opcode_cycles_extended;
     std::array<uint8_t, 256> opcode_cycles_branch; // extra cycles when branching
@@ -89,6 +88,8 @@ private:
     void reset_registers();
     void clear_ram();
     void clear_memory();
+
+    void rom_bank_switch(uint8_t bank_num);
 
     // These methods should be used for accessing memory, instead of
     // accessing state.memory directly
