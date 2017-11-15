@@ -238,17 +238,6 @@ void APU::NR52_write(uint8_t value)
     noise.get_timer().set_running(power_on);
 
     this->power_on = power_on;
-
-    uint8_t noise_on    = (value >> 3) & 1;
-    uint8_t wave_on     = (value >> 2) & 1;
-    uint8_t square2_on  = (value >> 1) & 1;
-    uint8_t square1_on  = (value >> 0) & 1;
-
-    // enable/disable particular channels
-    noise.set_channel_enabled(noise_on);
-    wave.set_channel_enabled(wave_on);
-    square2.set_channel_enabled(square2_on);
-    square1.set_channel_enabled(square1_on);
 }
 
 uint8_t APU::NR50_read()
