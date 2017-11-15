@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <iterator>
 #include "cpu.h"
 #include "systemclock.h"
 
