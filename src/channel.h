@@ -22,7 +22,9 @@ public:
     void set_timer_frequency(uint64_t frequency);
 
     // volume is in range [0, 15] (0 is off, 15 is loudest)
-    void set_volume(uint8_t volume);
+    // if set_dac_enabled is true, the dac will enabled or disabled
+    // depending on the value of volume
+    void set_volume(uint8_t volume, bool set_dac_enabled = true);
     uint8_t get_volume();
     virtual double get_true_volume();
 
@@ -78,6 +80,8 @@ protected:
 
     uint8_t envelope_period;
     bool envelope_add;
+
+    bool dac_enabled;
 
     void update_envelope();
 

@@ -8,15 +8,6 @@ APU::APU(SystemClock& clock)
     : frame_sequencer(256),
       power_on(true)
 {
-    // Prob. not what the APU sets these values to by default, but keep
-    // them like this for the moment
-    square1.set_volume(0);
-    square2.set_volume(0);
-    wave.enable_sound(false);
-    wave.set_volume(0);
-    noise.set_parameters(6, 1, 0);
-    noise.set_volume(0);
-
     // Make the system clock clock the frame sequencer & all channels
     clock.add_timer(&frame_sequencer);
     clock.add_timer(&square1.get_timer());
@@ -267,5 +258,6 @@ uint8_t APU::NR52_read()
     uint8_t wave_enabled = wave.is_channel_enabled();
     uint8_t square2_enabled = square2.is_channel_enabled();
     uint8_t square1_enabled = square1.is_channel_enabled();
+
     return (power_on << 7) | (noise_enabled << 3) | (wave_enabled << 2) | (square2_enabled << 1) | square1_enabled;
 }

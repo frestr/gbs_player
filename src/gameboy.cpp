@@ -7,7 +7,7 @@ GameBoy::GameBoy(GBSContent& gbs_content)
     : apu(clock),
       cpu(apu)
 {
-    apu.run_tests();
+    //apu.run_tests();
     apu.reset();
     this->gbs_content = gbs_content;
 }
@@ -28,20 +28,20 @@ void GameBoy::run()
     bool init_done = false;
 
     bool testing = false;
-    /* cpu.load_test_rom("instr_tests/01-special.gb");               // PASSED */
+    /* cpu.load_test_rom("instr_tests/01-special.gb");                  // PASSED */
     /* cpu.load_test_rom("instr_tests/02-interrupts.gb"); */
-    /* cpu.load_test_rom("instr_tests/03-op sp,hl.gb");              // PASSED */
-    /* cpu.load_test_rom("instr_tests/04-op r,imm.gb");              // PASSED */
-    /* cpu.load_test_rom("instr_tests/05-op rp.gb");                 // PASSED */
-    /* cpu.load_test_rom("instr_tests/06-ld r,r.gb");                // PASSED */
-    /* cpu.load_test_rom("instr_tests/07-jr,jp,call,ret,rst.gb");    // PASSED */
-    /* cpu.load_test_rom("instr_tests/08-misc instrs.gb");           // PASSED */
-    /* cpu.load_test_rom("instr_tests/09-op r,r.gb");                // PASSED */
-    /* cpu.load_test_rom("instr_tests/10-bit ops.gb");               // PASSED */
-    /* cpu.load_test_rom("instr_tests/11-op a,(hl).gb");             // PASSED */
+    /* cpu.load_test_rom("instr_tests/03-op sp,hl.gb");                 // PASSED */
+    /* cpu.load_test_rom("instr_tests/04-op r,imm.gb");                 // PASSED */
+    /* cpu.load_test_rom("instr_tests/05-op rp.gb");                    // PASSED */
+    /* cpu.load_test_rom("instr_tests/06-ld r,r.gb");                   // PASSED */
+    /* cpu.load_test_rom("instr_tests/07-jr,jp,call,ret,rst.gb");       // PASSED */
+    /* cpu.load_test_rom("instr_tests/08-misc instrs.gb");              // PASSED */
+    /* cpu.load_test_rom("instr_tests/09-op r,r.gb");                   // PASSED */
+    /* cpu.load_test_rom("instr_tests/10-bit ops.gb");                  // PASSED */
+    /* cpu.load_test_rom("instr_tests/11-op a,(hl).gb");                // PASSED */
 
-    /* cpu.load_test_rom("sound_tests/01-registers.gb"); */
-    /* cpu.load_test_rom("sound_tests/02-len ctr.gb"); */
+    /* cpu.load_test_rom("sound_tests/01-registers.gb");                // PASSED */
+    /* cpu.load_test_rom("sound_tests/02-len ctr.gb");                  // PASSED */
     /* cpu.load_test_rom("sound_tests/03-trigger.gb"); */
     /* cpu.load_test_rom("sound_tests/04-sweep.gb"); */
     /* cpu.load_test_rom("sound_tests/05-sweep details.gb"); */
@@ -73,7 +73,7 @@ void GameBoy::run()
                     clock.clock();
             } else {
                 // We still need to run the clock, even if the CPU is halted/stopped
-                // or the current music procedure is done
+                // or the current sound procedure is done
                 clock.clock();
                 ++cycles;
                 ++interrupt_counter;

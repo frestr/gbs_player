@@ -6,27 +6,19 @@
 
 Wave::Wave()
     : sample_index(0),
-      curr_sample(0),
-      sound_enabled(true)
+      curr_sample(0)
 {
     // redefinitions from Channel
     length_counter_limit = 256;
     volume_limit = 4;
 
-    set_length_counter(length_counter_limit - 1);
     samples.fill(0);
-
     set_frequency(1024); // Default?
-}
-
-void Wave::enable_sound(bool enable)
-{
-    sound_enabled = enable;    
 }
 
 double Wave::get_true_volume()
 {
-    if (!sound_enabled || !channel_enabled)
+    if (! dac_enabled || ! channel_enabled)
         return 0.0;
 
     switch(volume) {
@@ -46,8 +38,8 @@ double Wave::get_true_volume()
 
 void Wave::trigger()
 {
-    Channel::trigger();
     sample_index = 0;
+    Channel::trigger();
 }
 
 // set_frequency and get_frequency are very similar to the implementations
@@ -80,8 +72,9 @@ uint8_t Wave::get_sample(uint8_t index)
 
 void Wave::NRx0_write(uint8_t value)
 {
-    uint8_t sound_enabled = (value >> 7) & 1;
-    enable_sound(sound_enabled);
+    dac_enabled = (value >> 7) & 1;
+    if (! dac_enabled)
+        channel_enabled = false;
 }
 
 void Wave::NRx1_write(uint8_t value)
@@ -93,7 +86,7 @@ void Wave::NRx1_write(uint8_t value)
 void Wave::NRx2_write(uint8_t value)
 {
     uint8_t volume = (value >> 5) & 3;
-    set_volume(volume);
+    set_volume(volume, false);
 }
 
 // NRx3 and NRx4 contain the same code as in square.cpp. DRY, so
@@ -124,7 +117,7 @@ void Wave::NRx4_write(uint8_t value)
 
 uint8_t Wave::NRx0_read()
 {
-    return sound_enabled << 7;
+    return dac_enabled << 7;
 }
 
 uint8_t Wave::NRx1_read()

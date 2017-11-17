@@ -89,8 +89,7 @@ uint8_t Square2::NRx0_read()
 
 uint8_t Square2::NRx1_read()
 {
-    uint8_t val = (duty_cycle << 6) | (length_counter & 0x3F);
-    return val;
+    return (duty_cycle << 6) | (length_counter & 0x3F);
 }
 
 uint8_t Square2::NRx2_read()

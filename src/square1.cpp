@@ -9,14 +9,14 @@ Square1::Square1()
 
 void Square1::trigger()
 {
-    Square2::trigger();
-
     shadow_freq = freq;
     period_counter = sweep_period;
     sweep_enabled = (sweep_period > 0 && sweep_shift > 0);
 
     if (sweep_enabled)
         update_sweep(false);
+
+    Square2::trigger();
 }
 
 void Square1::clock(Timer* timer)

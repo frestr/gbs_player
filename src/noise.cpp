@@ -14,8 +14,8 @@ Noise::Noise()
 
 void Noise::trigger()
 {
-    Channel::trigger();
     shift_register = 0xFFFF;
+    Channel::trigger();
 }
 
 void Noise::set_parameters(uint8_t clock_shift, uint8_t width_mode, uint8_t divisor)

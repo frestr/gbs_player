@@ -288,9 +288,17 @@ void CPU::rom_bank_switch(uint8_t bank_num)
 
 void CPU::memory_write(uint16_t addr, uint8_t value)
 {
-    // Prints out data sent to serial link. For testing
+    // Prints out data sent to serial link. For testing CPU instructions
     if (addr == 0xFF02 && value == 0x81)
         std::cout << memory_read(0xFF01);
+
+    // Prints out the data written by sound tests
+    if (addr == 0xA000 && value != 0x80)
+        if (memory_read(0xA001) == 0xDE
+                && memory_read(0xA002) == 0xB0
+                && memory_read(0xA003) == 0x61)
+            for (uint16_t i = 0xA004; memory_read(i) != '\0'; ++i)
+                std::cout << memory_read(i);
 
     // As we are just implementing a gbs player, we ignore writes to
     // VRAM, RAM bank switching, OAM, some I/O & interrupts

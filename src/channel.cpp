@@ -12,6 +12,7 @@ Channel::Channel()
       frame_sequencer_ticks(0),
       envelope_period(0),
       envelope_add(false),
+      dac_enabled(true),
       curr_sample(0),
       envelope_period_counter(0),
       left_speaker_enabled(false),
@@ -20,7 +21,7 @@ Channel::Channel()
     timer.add_listener(this);
     set_volume(volume_limit - 1);
     set_timer_frequency(0);
-    set_length_counter(length_counter_limit - 1);
+    set_length_counter(0);
 }
 
 Timer& Channel::get_timer()
@@ -35,6 +36,9 @@ uint8_t Channel::get_sample()
 
 void Channel::clock(Timer* timer)
 {
+    if (! dac_enabled)
+        channel_enabled = false;
+
     if (timer == &(this->timer)) {
         curr_sample = next_phase();
     } else {
@@ -63,11 +67,20 @@ void Channel::set_timer_frequency(uint64_t frequency)
     timer.set_frequency(frequency);
 }
 
-void Channel::set_volume(uint8_t volume)
+void Channel::set_volume(uint8_t volume, bool set_dac_enabled)
 {
     assert(volume < volume_limit);
     this->volume = volume;
     starting_volume = volume;
+
+    if (set_dac_enabled) {
+        if (volume == 0 && ! envelope_add) {
+            dac_enabled = false;
+            channel_enabled = false;
+        } else {
+            dac_enabled = true;
+        }
+    }
 }
 
 uint8_t Channel::get_volume()
@@ -77,16 +90,15 @@ uint8_t Channel::get_volume()
 
 double Channel::get_true_volume()
 {
-    if (!channel_enabled)
+    if (! channel_enabled || ! dac_enabled)
         return 0.0;
     return volume / 15.0;
 }
 
 void Channel::set_length_counter(uint16_t length_counter)
 {
-    assert(length_counter < length_counter_limit);
+    assert(length_counter <= length_counter_limit);
     this->length_counter = length_counter_limit - length_counter;
-    channel_enabled = (length_counter > 0);
 }
 
 uint16_t Channel::get_length_counter()
@@ -101,6 +113,13 @@ void Channel::set_envelope(uint8_t period, bool add)
     envelope_period = period;
     envelope_period_counter = 0; // the envelope itself begins on trigger
     envelope_add = add;
+
+    if (volume == 0 && ! envelope_add) {
+        dac_enabled = false;
+        channel_enabled = false;
+    } else {
+        dac_enabled = true;
+    }
 }
 
 uint8_t Channel::get_envelope_period()
@@ -151,11 +170,11 @@ bool Channel::is_channel_enabled()
 
 void Channel::trigger()
 {
-    channel_enabled = true;
     if (length_counter == 0)
-        length_counter = length_counter_limit;
+        set_length_counter(0);
     envelope_period_counter = envelope_period;
-    volume = starting_volume;
+    set_volume(starting_volume, false);
+    channel_enabled = dac_enabled;
 }
 
 void Channel::update_envelope()
