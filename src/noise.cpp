@@ -14,6 +14,7 @@ Noise::Noise()
 
 void Noise::trigger()
 {
+    channel_enabled = true;
     shift_register = 0xFFFF;
     Channel::trigger();
 }

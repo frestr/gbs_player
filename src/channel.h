@@ -83,6 +83,8 @@ protected:
 
     bool dac_enabled;
 
+    bool length_newly_enabled;
+
     void update_envelope();
 
 private:

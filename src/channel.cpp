@@ -13,6 +13,7 @@ Channel::Channel()
       envelope_period(0),
       envelope_add(false),
       dac_enabled(true),
+      length_newly_enabled(false),
       curr_sample(0),
       envelope_period_counter(0),
       left_speaker_enabled(false),
@@ -22,11 +23,6 @@ Channel::Channel()
     set_volume(volume_limit - 1);
     set_timer_frequency(0);
     set_length_counter(0);
-}
-
-Timer& Channel::get_timer()
-{
-    return timer;
 }
 
 uint8_t Channel::get_sample()
@@ -60,6 +56,11 @@ void Channel::clock(Timer* timer)
             }
         }
     }
+}
+
+Timer& Channel::get_timer()
+{
+    return timer;
 }
 
 void Channel::set_timer_frequency(uint64_t frequency)
@@ -99,11 +100,53 @@ void Channel::set_length_counter(uint16_t length_counter)
 {
     assert(length_counter <= length_counter_limit);
     this->length_counter = length_counter_limit - length_counter;
+    /* std::cout << ">> Len set: " << (unsigned int)(this->length_counter) << "\n"; */
 }
 
 uint16_t Channel::get_length_counter()
 {
     return length_counter;
+}
+
+void Channel::enable_length_counter(bool enabled)
+{
+    bool newly_enabled = (! length_counter_enabled && enabled);
+    length_counter_enabled = enabled;
+
+    length_newly_enabled = newly_enabled;
+
+/*     /1* std::cout << "PRE " << length_counter << "\n"; *1/ */
+
+    // Clock length counter if length counter goes from disabled to enabled
+    // and is in first half of frame sequencer period
+    if (length_counter > 0
+            && newly_enabled
+            && frame_sequencer != NULL
+            && frame_sequencer->is_first_half())
+        clock(frame_sequencer);
+
+    /* std::cout << "POST " << length_counter << "\n"; */
+}
+
+bool Channel::is_length_counter_enabled()
+{
+    return length_counter_enabled;
+}
+
+void Channel::set_channel_enabled(bool enabled)
+{
+    channel_enabled = enabled;
+}
+
+bool Channel::is_channel_enabled()
+{
+    return channel_enabled;
+}
+
+void Channel::set_frame_sequencer(Timer* frame_sequencer)
+{
+    this->frame_sequencer = frame_sequencer;
+    frame_sequencer->add_listener(this);
 }
 
 void Channel::set_envelope(uint8_t period, bool add)
@@ -148,33 +191,21 @@ bool Channel::is_right_speaker_enabled()
     return right_speaker_enabled;
 }
 
-void Channel::enable_length_counter(bool enabled)
-{
-    this->length_counter_enabled = enabled;
-}
-
-bool Channel::is_length_counter_enabled()
-{
-    return length_counter_enabled;
-}
-
-void Channel::set_channel_enabled(bool enabled)
-{
-    channel_enabled = enabled;
-}
-
-bool Channel::is_channel_enabled()
-{
-    return channel_enabled;
-}
-
 void Channel::trigger()
 {
-    if (length_counter == 0)
+    if (length_counter == 0) {
         set_length_counter(0);
+        // Clock if length counter enabled
+        std::cout << "CLOCK1.1 " << (unsigned int)get_length_counter() << "\n";
+        if (length_newly_enabled && frame_sequencer != NULL) {
+            clock(frame_sequencer);
+        }
+        std::cout << "CLOCK1.2 " << (unsigned int)get_length_counter() << "\n";
+    }
     envelope_period_counter = envelope_period;
     set_volume(starting_volume, false);
-    channel_enabled = dac_enabled;
+    if (! dac_enabled)
+        channel_enabled = false;
 }
 
 void Channel::update_envelope()

@@ -7,6 +7,7 @@ class Square2 : public Channel
 {
 public:
     Square2();
+    virtual void trigger();
 
     void set_duty_cycle(uint8_t duty_cycle);
     uint8_t get_duty_cycle();

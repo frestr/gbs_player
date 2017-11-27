@@ -24,6 +24,9 @@ public:
     // previously stopped.
     void set_running(bool running);
 
+    // true if in the first half of the current period
+    bool is_first_half();
+
 private:
     uint64_t frequency;
     uint64_t period; // in clock cycles

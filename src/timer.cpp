@@ -49,3 +49,8 @@ void Timer::set_running(bool running)
     if (! running)
         counter = period;
 }
+
+bool Timer::is_first_half()
+{
+    return counter >= period/2;
+}

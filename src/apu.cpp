@@ -17,10 +17,10 @@ APU::APU(SystemClock& clock)
     clock.add_timer(&mixer.get_timer());
 
     // Make the frame sequencer clock all channels
-    frame_sequencer.add_listener(&square1);
-    frame_sequencer.add_listener(&square2);
-    frame_sequencer.add_listener(&wave);
-    frame_sequencer.add_listener(&noise);
+    square1.set_frame_sequencer(&frame_sequencer);
+    square2.set_frame_sequencer(&frame_sequencer);
+    wave.set_frame_sequencer(&frame_sequencer);
+    noise.set_frame_sequencer(&frame_sequencer);
 
     // Add all channels to the mixer
     mixer.add_channel(&square1);

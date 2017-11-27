@@ -38,6 +38,7 @@ double Wave::get_true_volume()
 
 void Wave::trigger()
 {
+    channel_enabled = true;
     sample_index = 0;
     Channel::trigger();
 }

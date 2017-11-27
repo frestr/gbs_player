@@ -8,8 +8,6 @@ class Wave : public Channel
 public:
     Wave();
 
-    void enable_sound(bool enable);
-
     // hide the update_envelope function from Channel, since
     // there's no envelope for wave
     void update_envelope() {};
@@ -41,7 +39,6 @@ private:
     std::array<uint8_t, 32> samples;
     uint8_t sample_index;
     uint8_t curr_sample;
-    bool sound_enabled;
 
     virtual uint8_t next_phase();
 };

@@ -12,6 +12,12 @@ Square2::Square2()
     set_frequency(1024);
 }
 
+void Square2::trigger()
+{
+    channel_enabled = true;
+    Channel::trigger();
+}
+
 void Square2::set_duty_cycle(uint8_t duty_cycle)
 {
     assert(duty_cycle < 4);
