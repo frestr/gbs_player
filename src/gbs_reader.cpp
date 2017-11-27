@@ -33,6 +33,26 @@ GBSContent& GBSReader::get_content()
     return content;
 }
 
+void GBSReader::print_metadata(bool verbose)
+{
+    if (verbose) {
+        std::cout << "GBS version:      " << static_cast<unsigned int>(content.version) << "\n";
+        std::cout << "Song count:       " << static_cast<unsigned int>(content.num_songs) << "\n";
+        std::cout << "First song:       " << static_cast<unsigned int>(content.first_song) << "\n";
+        std::cout << std::hex;
+        std::cout << "Load address:     0x" << content.load_addr << "\n";
+        std::cout << "Init address:     0x" << content.init_addr << "\n";
+        std::cout << "Play address:     0x" << content.play_addr << "\n";
+        std::cout << "Stack pointer:    0x" << content.stack_pointer << "\n";
+        std::cout << "Timer modulo:     0x" << static_cast<unsigned int>(content.timer_modulo) << "\n";
+        std::cout << "Timer control:    0x" << static_cast<unsigned int>(content.timer_control) << "\n";
+        std::cout << std::dec;
+    }
+    std::cout << "Title:            " << content.title << "\n";
+    std::cout << "Author:           " << content.author << "\n";
+    std::cout << "Copyright:        " << content.copyright << "\n";
+}
+
 void GBSReader::parse_file(std::vector<uint8_t>& buf)
 {
     // Make sure that the file is at least as big as the header
@@ -69,13 +89,13 @@ void GBSReader::parse_file(std::vector<uint8_t>& buf)
     content.timer_control = buf[0xF];
 
     auto title_start = buf.begin() + 0x10;
-    content.title = std::string(title_start, title_start + 0x19);
+    content.title = std::string(title_start, title_start + 0x20);
 
     auto author_start = buf.begin() + 0x30;
-    content.title = std::string(author_start, author_start + 0x19);
+    content.author = std::string(author_start, author_start + 0x20);
 
     auto copyright_start = buf.begin() + 0x50;
-    content.copyright = std::string(copyright_start, copyright_start + 0x19);
+    content.copyright = std::string(copyright_start, copyright_start + 0x20);
 
     auto code_start = buf.begin() + 0x70;
     content.code = std::vector<uint8_t>(code_start, buf.end());

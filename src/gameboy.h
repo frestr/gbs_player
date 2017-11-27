@@ -20,6 +20,9 @@ public:
 
     void set_player(Player* player);
 
+    void next_song();
+    void prev_song();
+
 private:
     SystemClock clock;
     APU apu;
@@ -27,4 +30,9 @@ private:
     Player* player;
 
     GBSContent gbs_content;
+
+    uint8_t curr_song;
+
+    std::atomic<bool> play_next_song;
+    std::atomic<bool> play_prev_song;
 };

@@ -32,6 +32,8 @@ public:
     void load_file(std::string filename);
     GBSContent& get_content();
 
+    void print_metadata(bool verbose = true);
+
 private:
     GBSContent content;
 

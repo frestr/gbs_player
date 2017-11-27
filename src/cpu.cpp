@@ -187,7 +187,7 @@ uint32_t CPU::get_interrupt_rate()
         return static_cast<uint32_t>(SystemClock::CLOCK_RATE / 59.7);
 
     // Use timer interrupt
-    uint32_t counter_rate;
+    uint32_t counter_rate = 4096;
     switch (state.memory[0xFF07] & 3) {
         case 0:
             counter_rate = 4096;
@@ -288,6 +288,7 @@ void CPU::rom_bank_switch(uint8_t bank_num)
 
 void CPU::memory_write(uint16_t addr, uint8_t value)
 {
+#ifdef DEBUG
     // Prints out data sent to serial link. For testing CPU instructions
     if (addr == 0xFF02 && value == 0x81)
         std::cout << memory_read(0xFF01);
@@ -299,6 +300,7 @@ void CPU::memory_write(uint16_t addr, uint8_t value)
                 && memory_read(0xA003) == 0x61)
             for (uint16_t i = 0xA004; memory_read(i) != '\0'; ++i)
                 std::cout << memory_read(i);
+#endif
 
     // As we are just implementing a gbs player, we ignore writes to
     // VRAM, RAM bank switching, OAM, some I/O & interrupts

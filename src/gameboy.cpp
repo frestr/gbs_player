@@ -10,6 +10,7 @@ GameBoy::GameBoy(GBSContent& gbs_content)
     //apu.run_tests();
     apu.reset();
     this->gbs_content = gbs_content;
+    curr_song = gbs_content.first_song;
 }
 
 void GameBoy::run()
@@ -21,7 +22,7 @@ void GameBoy::run()
     std::chrono::nanoseconds period_duration(period);
 
     cpu.gbs_load(gbs_content.load_addr, gbs_content.code);
-    cpu.gbs_init(gbs_content.init_addr, gbs_content.first_song, gbs_content.stack_pointer,
+    cpu.gbs_init(gbs_content.init_addr, curr_song, gbs_content.stack_pointer,
                  gbs_content.timer_modulo, gbs_content.timer_control);
 
     bool running = true;
@@ -56,9 +57,24 @@ void GameBoy::run()
     uint32_t cycles;
     uint32_t instr_cycles;
     uint32_t interrupt_rate;
-    uint32_t interrupt_counter;
+    uint32_t interrupt_counter = 0;
     while (running) {
         auto start = std::chrono::steady_clock::now();
+
+        // Check if a new song is to be played
+        if (play_next_song || play_prev_song) {
+            if (play_next_song) {
+                curr_song = (curr_song >= gbs_content.num_songs) ? 1 : curr_song + 1;
+                play_next_song = false;
+            }
+            if (play_prev_song) {
+                curr_song = (curr_song <= 1) ? gbs_content.num_songs : curr_song - 1;
+                play_prev_song = false;
+            }
+            std::cout << "Playing song no. " << static_cast<unsigned int>(curr_song) << "\n";
+            cpu.gbs_init(gbs_content.init_addr, curr_song, gbs_content.stack_pointer,
+                         gbs_content.timer_modulo, gbs_content.timer_control);
+        }
 
         interrupt_rate = cpu.get_interrupt_rate();
 
@@ -95,7 +111,6 @@ void GameBoy::run()
                 }
             }
         }
-
         if (! testing && player != NULL)
             player->play();
 
@@ -111,4 +126,14 @@ Mixer& GameBoy::get_mixer()
 void GameBoy::set_player(Player* player)
 {
     this->player = player;
+}
+
+void GameBoy::next_song()
+{
+    play_next_song = true;
+}
+
+void GameBoy::prev_song()
+{
+    play_prev_song = true;
 }

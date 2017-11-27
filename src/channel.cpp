@@ -196,11 +196,9 @@ void Channel::trigger()
     if (length_counter == 0) {
         set_length_counter(0);
         // Clock if length counter enabled
-        std::cout << "CLOCK1.1 " << (unsigned int)get_length_counter() << "\n";
         if (length_newly_enabled && frame_sequencer != NULL) {
             clock(frame_sequencer);
         }
-        std::cout << "CLOCK1.2 " << (unsigned int)get_length_counter() << "\n";
     }
     envelope_period_counter = envelope_period;
     set_volume(starting_volume, false);

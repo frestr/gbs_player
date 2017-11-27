@@ -15,9 +15,7 @@ void Square1::trigger()
     period_counter = sweep_period;
     sweep_enabled = (sweep_period > 0 || sweep_shift > 0);
 
-    std::cout << "shift: " << (unsigned int)sweep_shift << "\n";
     if (sweep_shift > 0) {
-        std::cout << "kalkualktetiti\n";
         update_sweep(false);
     }
 
@@ -91,7 +89,6 @@ void Square1::update_sweep(bool register_write)
     // becomes too high, this low value is kept constant and the channel is not disabled
     // (resulting in a constant, low freq sound)
     uint64_t new_freq = shadow_freq + (shadow_freq >> sweep_shift) * (sweep_decrease ? -1 : 1);
-    std::cout << "new_freq: " << (unsigned int)new_freq << "\n";
     if (new_freq < 2048) {
         if (register_write) {
             shadow_freq = new_freq;
@@ -102,7 +99,6 @@ void Square1::update_sweep(bool register_write)
             update_sweep(false);
         }
     } else {
-        std::cout << "overflow\n";
         channel_enabled = false;        
     }
 }
