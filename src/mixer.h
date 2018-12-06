@@ -1,6 +1,5 @@
 #pragma once
 
-#include <SFML/Audio.hpp>
 #include <cstdint>
 #include "channel.h"
 #include "timer_listener.h"
